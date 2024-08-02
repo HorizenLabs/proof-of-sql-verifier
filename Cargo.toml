@@ -1,0 +1,17 @@
+[package]
+name = "proof-of-sql-verifier"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+blitzar = { version = "3.1.0", default-features = false, optional = true }
+curve25519-dalek = { version = "4", optional = true }
+proof-of-sql = { version = "0.6.4", default-features = false }
+proof-of-sql-parser = { version = "0.6.4" }
+
+[dev-dependencies]
+proof-of-sql = { version = "0.6.4", default-features = false, features = ["test"] }
+
+[features]
+dory = ["proof-of-sql/test"]
+inner-product = ["dep:blitzar", "dep:curve25519-dalek", "proof-of-sql/blitzar"]
