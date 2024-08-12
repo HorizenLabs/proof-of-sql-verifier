@@ -19,7 +19,21 @@ pub mod common {
             owned_table([
                 bigint("a", [1, 2, 3, 2]),
                 varchar("b", ["hi", "hello", "there", "world"]),
-                boolean("c", [true, false, true, false]),
+            ]),
+            0,
+        );
+        accessor
+    }
+
+    pub fn build_alternative_accessor<T: CommitmentEvaluationProof>(
+        setup: <T as CommitmentEvaluationProof>::ProverPublicSetup<'_>,
+    ) -> OwnedTableTestAccessor<T> {
+        let mut accessor = OwnedTableTestAccessor::<T>::new_empty_with_setup(setup);
+        accessor.add_table(
+            "sxt.table".parse().unwrap(),
+            owned_table([
+                bigint("a", [1, 2, 3, 2]),
+                varchar("b", ["hi", "hello", "there", "zkVerify"]),
             ]),
             0,
         );
@@ -183,6 +197,42 @@ mod dory {
             .unwrap();
 
         let query_commitments = QueryCommitments::new();
+
+        let result = proof_of_sql_verifier::verify_dory_proof(
+            proof,
+            query.proof_expr(),
+            &query_commitments,
+            &query_data,
+            &verifier_setup,
+        );
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn generate_and_verify_proof_alternative_data() {
+        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let ps = ProverSetup::from(&public_parameters);
+        let vs = VerifierSetup::from(&public_parameters);
+        let prover_setup = DoryProverPublicSetup::new(&ps, 4);
+        let verifier_setup = DoryVerifierPublicSetup::new(&vs, 4);
+
+        let accessor: OwnedTableTestAccessor<DoryEvaluationProof> = build_accessor(prover_setup);
+        let query = build_query(&accessor);
+
+        let proof = VerifiableQueryResult::<DoryEvaluationProof>::new(
+            query.proof_expr(),
+            &accessor,
+            &prover_setup,
+        );
+
+        let query_data = proof
+            .verify(query.proof_expr(), &accessor, &verifier_setup)
+            .unwrap();
+
+        let accessor: OwnedTableTestAccessor<DoryEvaluationProof> =
+            build_alternative_accessor(prover_setup);
+        let query_commitments = proof_of_sql_verifier::compute_query_commitments(&query, &accessor);
 
         let result = proof_of_sql_verifier::verify_dory_proof(
             proof,
