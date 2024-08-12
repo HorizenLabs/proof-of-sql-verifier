@@ -22,6 +22,11 @@ pub fn verify_proof<CP: CommitmentEvaluationProof>(
     // `proof_of_sql::base::commitment::query_commitments::QueryCommitments::from_accessor_with_max_bounds`
     // If this check is not done, then the `verify` method could panic if the accessor tries to access
     // data which does not exist inside teh `QueryCommitments` struct.
+
+    if commitments.is_empty() {
+        return Err(VerifyError::VerifyError);
+    }
+
     let result = proof
         .verify(expr, commitments, setup)
         .map_err(|_| VerifyError::VerifyError)?;
