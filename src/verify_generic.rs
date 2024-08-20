@@ -1,4 +1,5 @@
 use proof_of_sql::base::commitment::CommitmentEvaluationProof;
+use proof_of_sql::sql::proof::ProofExpr;
 
 use crate::error::VerifyError;
 
@@ -17,14 +18,20 @@ pub fn verify_proof<CP: CommitmentEvaluationProof>(
     query_data: &QueryData<CP::Scalar>,
     setup: &CP::VerifierPublicSetup<'_>,
 ) -> Result<(), VerifyError> {
-    // TODO check that the provided `commitments` contain all the necessary data.
-    // This should be possible by replicating the same logic as
-    // `proof_of_sql::base::commitment::query_commitments::QueryCommitments::from_accessor_with_max_bounds`
-    // If this check is not done, then the `verify` method could panic if the accessor tries to access
-    // data which does not exist inside teh `QueryCommitments` struct.
-
-    if commitments.is_empty() {
-        return Err(VerifyError::VerifyError);
+    // Check that the columns in the proof match the columns in the commitments
+    for column in expr.get_column_references() {
+        if let Some(commitment) = commitments.get(&column.table_ref()) {
+            if let Some(metadata) = commitment
+                .column_commitments()
+                .get_metadata(&column.column_id())
+            {
+                if metadata.column_type() != column.column_type() {
+                    return Err(VerifyError::VerifyError);
+                }
+            }
+        } else {
+            return Err(VerifyError::VerifyError);
+        }
     }
 
     let result = proof
