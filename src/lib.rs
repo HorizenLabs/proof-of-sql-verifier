@@ -1,6 +1,5 @@
 mod client;
 mod error;
-mod proof;
 mod verification_key;
 mod verify_generic;
 
