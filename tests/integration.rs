@@ -1,92 +1,105 @@
-pub mod common {
-    pub use proof_of_sql::{
-        base::{
-            commitment::{Commitment, CommitmentEvaluationProof},
-            database::{
-                owned_table_utility::*, OwnedTableTestAccessor, SchemaAccessor, TestAccessor,
-            },
+// Copyright 2024, The Horizen Foundation
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+pub use proof_of_sql::{
+    base::{
+        commitment::{Commitment, CommitmentEvaluationProof},
+        database::{
+            owned_table_utility::*, OwnedTableTestAccessor, SchemaAccessor, TestAccessor,
         },
-        sql::{parse::QueryExpr, proof::VerifiableQueryResult},
-    };
+    },
+    sql::{parse::QueryExpr, proof::VerifiableQueryResult},
+};
 
-    pub fn build_accessor<T: CommitmentEvaluationProof>(
-        setup: <T as CommitmentEvaluationProof>::ProverPublicSetup<'_>,
-    ) -> OwnedTableTestAccessor<T> {
-        let mut accessor = OwnedTableTestAccessor::<T>::new_empty_with_setup(setup);
-        accessor.add_table(
-            "sxt.table".parse().unwrap(),
-            owned_table([
-                bigint("a", [1, 2, 3, 2]),
-                varchar("b", ["hi", "hello", "there", "world"]),
-            ]),
-            0,
-        );
-        accessor
-    }
+fn build_accessor<T: CommitmentEvaluationProof>(
+    setup: <T as CommitmentEvaluationProof>::ProverPublicSetup<'_>,
+) -> OwnedTableTestAccessor<T> {
+    let mut accessor = OwnedTableTestAccessor::<T>::new_empty_with_setup(setup);
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([
+            bigint("a", [1, 2, 3, 2]),
+            varchar("b", ["hi", "hello", "there", "world"]),
+        ]),
+        0,
+    );
+    accessor
+}
 
-    pub fn build_altered_accessor<T: CommitmentEvaluationProof>(
-        setup: <T as CommitmentEvaluationProof>::ProverPublicSetup<'_>,
-    ) -> OwnedTableTestAccessor<T> {
-        let mut accessor = OwnedTableTestAccessor::<T>::new_empty_with_setup(setup);
-        accessor.add_table(
-            "sxt.table".parse().unwrap(),
-            owned_table([
-                bigint("a", [1, 2, 3, 2]),
-                varchar("b", ["hi", "hello", "there", "zkVerify"]),
-            ]),
-            0,
-        );
-        accessor
-    }
+fn build_altered_accessor<T: CommitmentEvaluationProof>(
+    setup: <T as CommitmentEvaluationProof>::ProverPublicSetup<'_>,
+) -> OwnedTableTestAccessor<T> {
+    let mut accessor = OwnedTableTestAccessor::<T>::new_empty_with_setup(setup);
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([
+            bigint("a", [1, 2, 3, 2]),
+            varchar("b", ["hi", "hello", "there", "zkVerify"]),
+        ]),
+        0,
+    );
+    accessor
+}
 
-    pub fn build_alien_accessor<T: CommitmentEvaluationProof>(
-        setup: <T as CommitmentEvaluationProof>::ProverPublicSetup<'_>,
-    ) -> OwnedTableTestAccessor<T> {
-        let mut accessor = OwnedTableTestAccessor::<T>::new_empty_with_setup(setup);
-        accessor.add_table(
-            "sxt.table2".parse().unwrap(),
-            owned_table([
-                bigint("c", [1, 2, 3, 2]),
-                varchar("d", ["hi", "hello", "there", "world"]),
-            ]),
-            0,
-        );
-        accessor
-    }
+fn build_alien_accessor<T: CommitmentEvaluationProof>(
+    setup: <T as CommitmentEvaluationProof>::ProverPublicSetup<'_>,
+) -> OwnedTableTestAccessor<T> {
+    let mut accessor = OwnedTableTestAccessor::<T>::new_empty_with_setup(setup);
+    accessor.add_table(
+        "sxt.table2".parse().unwrap(),
+        owned_table([
+            bigint("c", [1, 2, 3, 2]),
+            varchar("d", ["hi", "hello", "there", "world"]),
+        ]),
+        0,
+    );
+    accessor
+}
 
-    pub fn build_query<T: Commitment>(accessor: &impl SchemaAccessor) -> QueryExpr<T> {
-        QueryExpr::try_new(
-            "SELECT b FROM table WHERE a = 2".parse().unwrap(),
-            "sxt".parse().unwrap(),
-            accessor,
-        )
-        .unwrap()
-    }
+fn build_query<T: Commitment>(accessor: &impl SchemaAccessor) -> QueryExpr<T> {
+    QueryExpr::try_new(
+        "SELECT b FROM table WHERE a = 2".parse().unwrap(),
+        "sxt".parse().unwrap(),
+        accessor,
+    )
+    .unwrap()
+}
 
-    pub fn build_alien_query<T: Commitment>(accessor: &impl SchemaAccessor) -> QueryExpr<T> {
-        QueryExpr::try_new(
-            "SELECT d FROM table2 WHERE c = 2".parse().unwrap(),
-            "sxt".parse().unwrap(),
-            accessor,
-        )
-        .unwrap()
-    }
+fn build_alien_query<T: Commitment>(accessor: &impl SchemaAccessor) -> QueryExpr<T> {
+    QueryExpr::try_new(
+        "SELECT d FROM table2 WHERE c = 2".parse().unwrap(),
+        "sxt".parse().unwrap(),
+        accessor,
+    )
+    .unwrap()
+}
 
-    pub fn build_query_non_existant_record<T: Commitment>(
-        accessor: &impl SchemaAccessor,
-    ) -> QueryExpr<T> {
-        QueryExpr::try_new(
-            "SELECT b FROM table WHERE a = 4".parse().unwrap(),
-            "sxt".parse().unwrap(),
-            accessor,
-        )
-        .unwrap()
-    }
+fn build_query_non_existant_record<T: Commitment>(
+    accessor: &impl SchemaAccessor,
+) -> QueryExpr<T> {
+    QueryExpr::try_new(
+        "SELECT b FROM table WHERE a = 4".parse().unwrap(),
+        "sxt".parse().unwrap(),
+        accessor,
+    )
+    .unwrap()
 }
 
 #[cfg(feature = "inner-product")]
 mod inner_product {
-    use super::common::*;
+    use super::*;
 
     use blitzar::{self, proof::InnerProductProof};
 
@@ -124,23 +137,22 @@ mod inner_product {
 
 mod dory {
 
-    use super::common::*;
+    use super::*;
 
     use proof_of_sql::proof_primitive::dory::{
-        test_rng, DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
-        PublicParameters, VerifierSetup,
+        test_rng, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup,
+        PublicParameters,
     };
 
     use proof_of_sql::base::commitment::QueryCommitments;
+    use proof_of_sql_verifier::VerificationKey;
 
     #[test]
     fn generate_and_verify_proof() {
         // Initialize setup
         let public_parameters = PublicParameters::rand(4, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
-        let vs = VerifierSetup::from(&public_parameters);
         let prover_setup = DoryProverPublicSetup::new(&ps, 4);
-        let verifier_setup = DoryVerifierPublicSetup::new(&vs, 4);
 
         // Build table accessor and query
         let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
@@ -154,8 +166,9 @@ mod dory {
         );
 
         // Get query data and commitments
+        let vk = VerificationKey::<4>::new(&public_parameters);
         let query_data = proof
-            .verify(query.proof_expr(), &accessor, &verifier_setup)
+            .verify(query.proof_expr(), &accessor, &vk.into_dory())
             .unwrap();
         let query_commitments = proof_of_sql_verifier::compute_query_commitments(&query, &accessor);
 
@@ -165,7 +178,7 @@ mod dory {
             query.proof_expr(),
             &query_commitments,
             &query_data,
-            &verifier_setup,
+            &vk,
         );
 
         assert!(result.is_ok());
@@ -176,9 +189,7 @@ mod dory {
         // Initialize setup
         let public_parameters = PublicParameters::rand(4, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
-        let vs = VerifierSetup::from(&public_parameters);
         let prover_setup = DoryProverPublicSetup::new(&ps, 4);
-        let verifier_setup = DoryVerifierPublicSetup::new(&vs, 4);
 
         // Build table accessor and query
         let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
@@ -190,8 +201,10 @@ mod dory {
             &prover_setup,
         );
 
+        let vk = VerificationKey::<4>::new(&public_parameters);
+
         let query_data = proof
-            .verify(non_existant_query.proof_expr(), &accessor, &verifier_setup)
+            .verify(non_existant_query.proof_expr(), &accessor, &vk.into_dory())
             .unwrap();
         let query_commitments =
             proof_of_sql_verifier::compute_query_commitments(&non_existant_query, &accessor);
@@ -201,7 +214,7 @@ mod dory {
             non_existant_query.proof_expr(),
             &query_commitments,
             &query_data,
-            &verifier_setup,
+            &vk,
         );
 
         assert!(result.is_ok());
@@ -212,9 +225,7 @@ mod dory {
         // Initialize setup
         let public_parameters = PublicParameters::rand(4, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
-        let vs = VerifierSetup::from(&public_parameters);
         let prover_setup = DoryProverPublicSetup::new(&ps, 4);
-        let verifier_setup = DoryVerifierPublicSetup::new(&vs, 4);
 
         // Build table accessor and query
         let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
@@ -228,8 +239,9 @@ mod dory {
         );
 
         // Get query data and commitments
+        let vk = VerificationKey::<4>::new(&public_parameters);
         let query_data = proof
-            .verify(query.proof_expr(), &accessor, &verifier_setup)
+            .verify(query.proof_expr(), &accessor, &vk.into_dory())
             .unwrap();
         let no_commitments = QueryCommitments::new();
 
@@ -238,7 +250,7 @@ mod dory {
             query.proof_expr(),
             &no_commitments,
             &query_data,
-            &verifier_setup,
+            &vk,
         );
 
         assert!(result.is_err());
@@ -249,9 +261,7 @@ mod dory {
         // Initialize setup
         let public_parameters = PublicParameters::rand(4, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
-        let vs = VerifierSetup::from(&public_parameters);
         let prover_setup = DoryProverPublicSetup::new(&ps, 4);
-        let verifier_setup = DoryVerifierPublicSetup::new(&vs, 4);
 
         // Build table accessor and query
         let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
@@ -265,8 +275,9 @@ mod dory {
         );
 
         // Get query data and commitments
+        let vk = VerificationKey::<4>::new(&public_parameters);
         let query_data = proof
-            .verify(query.proof_expr(), &accessor, &verifier_setup)
+            .verify(query.proof_expr(), &accessor, &vk.into_dory())
             .unwrap();
 
         // Alter the data
@@ -281,7 +292,7 @@ mod dory {
             query.proof_expr(),
             &altered_query_commitments,
             &query_data,
-            &verifier_setup,
+            &vk,
         );
 
         assert!(result.is_err());
@@ -292,9 +303,7 @@ mod dory {
         // Initialize setup
         let public_parameters = PublicParameters::rand(4, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
-        let vs = VerifierSetup::from(&public_parameters);
         let prover_setup = DoryProverPublicSetup::new(&ps, 4);
-        let verifier_setup = DoryVerifierPublicSetup::new(&vs, 4);
 
         // Build table accessors and queries
         let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
@@ -310,8 +319,9 @@ mod dory {
         );
 
         // Get the result
+        let vk = VerificationKey::<4>::new(&public_parameters);
         let query_data = proof
-            .verify(query.proof_expr(), &accessor, &verifier_setup)
+            .verify(query.proof_expr(), &accessor, &vk.into_dory())
             .unwrap();
 
         // Compute query commitments for alien accessor
@@ -323,7 +333,7 @@ mod dory {
             query.proof_expr(),
             &query_commitments,
             &query_data,
-            &verifier_setup,
+            &vk,
         );
 
         assert!(result.is_err());
