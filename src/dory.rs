@@ -13,26 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use proof_of_sql::{
-    base::commitment::QueryCommitments,
-    sql::{
-        ast::ProofPlan,
-        proof::{QueryData, VerifiableQueryResult},
-    },
-};
-
-pub use proof_of_sql::proof_primitive::dory::{
-    DoryCommitment, DoryEvaluationProof, DoryScalar, DoryVerifierPublicSetup,
-};
-
-use crate::{error::VerifyError, verify_generic::verify_proof, VerificationKey};
+use crate::{verify_generic::verify_proof, DoryProof, VerificationKey, VerifyError, DoryPublicInput};
 
 pub fn verify_dory_proof<const N: usize>(
-    proof: VerifiableQueryResult<DoryEvaluationProof>,
-    expr: &ProofPlan<DoryCommitment>,
-    commitments: &QueryCommitments<DoryCommitment>,
-    query_data: &QueryData<DoryScalar>,
+    proof: &DoryProof,
+    pubs: &DoryPublicInput,
     vk: &VerificationKey<N>,
 ) -> Result<(), VerifyError> {
-    verify_proof(proof, expr, commitments, query_data, &vk.into_dory())
+
+    verify_proof(
+        proof.clone().into(),
+        pubs.expr(),
+        pubs.commitments(),
+        pubs.query_data(),
+        &vk.into_dory(),
+    )
 }

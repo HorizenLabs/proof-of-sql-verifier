@@ -13,14 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// This module defines errors used across the verification library.
 #[derive(Debug, PartialEq)]
 pub enum VerifyError {
-    /// Provided data has not valid public inputs.
+    /// Provided data has invalid public inputs.
     InvalidInput,
-    /// Provided data has not valid proof.
+    /// Provided data has invalid proof.
     InvalidProofData,
     /// Verify proof failed.
-    VerifyError,
+    VerificationFailed, // Renamed for clarity
     /// Provided an invalid verification key.
     InvalidVerificationKey,
 }

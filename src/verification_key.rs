@@ -14,7 +14,9 @@
 // limitations under the License.
 
 use ark_serialize::CanonicalDeserialize;
-use proof_of_sql::proof_primitive::dory::{DoryVerifierPublicSetup, VerifierSetup, PublicParameters};
+use proof_of_sql::proof_primitive::dory::{
+    DoryVerifierPublicSetup, PublicParameters, VerifierSetup,
+};
 
 use crate::VerifyError;
 
@@ -47,7 +49,6 @@ impl<const N: usize> VerificationKey<N> {
         DoryVerifierPublicSetup::new(&self.0, N)
     }
 }
-
 
 fn slice_to_usize(slice: &[u8]) -> usize {
     let mut array = [0u8; std::mem::size_of::<usize>()];

@@ -15,16 +15,15 @@
 
 use proof_of_sql::base::commitment::CommitmentEvaluationProof;
 use proof_of_sql::sql::proof::ProofExpr;
-
-use crate::error::VerifyError;
-
-pub use proof_of_sql::{
+use proof_of_sql::{
     base::commitment::QueryCommitments,
     sql::{
         ast::ProofPlan,
         proof::{QueryData, VerifiableQueryResult},
     },
 };
+
+use crate::VerifyError;
 
 pub fn verify_proof<CP: CommitmentEvaluationProof>(
     proof: VerifiableQueryResult<CP>,
@@ -41,21 +40,21 @@ pub fn verify_proof<CP: CommitmentEvaluationProof>(
                 .get_metadata(&column.column_id())
             {
                 if metadata.column_type() != column.column_type() {
-                    return Err(VerifyError::VerifyError);
+                    return Err(VerifyError::InvalidInput);
                 }
             }
         } else {
-            return Err(VerifyError::VerifyError);
+            return Err(VerifyError::InvalidInput);
         }
     }
 
     let result = proof
         .verify(expr, commitments, setup)
-        .map_err(|_| VerifyError::VerifyError)?;
+        .map_err(|_| VerifyError::VerificationFailed)?;
 
     if result.table != query_data.table || result.verification_hash != query_data.verification_hash
     {
-        Err(VerifyError::VerifyError)
+        Err(VerifyError::VerificationFailed)
     } else {
         Ok(())
     }

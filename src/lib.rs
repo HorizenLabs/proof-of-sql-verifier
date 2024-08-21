@@ -13,17 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod client;
-mod error;
-
+mod errors;
+mod proof;
+mod pubs;
 mod verification_key;
 mod verify_generic;
 
 pub mod dory;
 pub use dory::*;
 
-pub use client::*;
-pub use error::*;
+pub use errors::*;
+pub use proof::*;
+pub use pubs::*;
 pub use verification_key::*;
 pub use verify_generic::*;
 
