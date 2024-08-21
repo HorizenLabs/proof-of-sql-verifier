@@ -41,24 +41,7 @@ command = "cargo"
 args = ["clippy", "--", "--deny", "warnings"]
 
 [tasks.header-add]
-script = [
-    "if [ \"$#\" -lt 2 ]; then",
-    "  echo 'Usage: $0 <header-file> <file-pattern>'",
-    "  exit 1",
-    "fi",
-    "HEADER_FILE=\"$1\"",
-    "FILE_PATTERN=\"$2\"",
-    "LICENSE_HEADER=$(cat \"$HEADER_FILE\")",
-    "shopt -s globstar",
-    "for file in $FILE_PATTERN; do",
-    "  if [[ -f \"$file\" && \"$file\" == *.rs ]]; then",
-    "    if ! grep -q 'Copyright 2024, Horizen Labs, Inc.' \"$file\"; then",
-    "      echo 'Adding license header to $file'",
-    "      echo -e \"$LICENSE_HEADER\\n$(cat $file)\" > \"$file\"",
-    "    fi",
-    "  fi",
-    "done"
-]
+script = { file = "./scripts/add_header_if_missing.sh" }
 args = ["HEADER-APACHE2", "./!(target)/**/*.rs"]
 
 [tasks.header-check]

@@ -1,30 +1,47 @@
 #!/bin/bash
 
-# Check if at least two arguments are provided
-if [ "$#" -lt 2 ]; then
-  echo "Usage: $0 <header-file> <file-pattern>"
-  exit 1
-fi
+set -euo pipefail
+shopt -s extglob
 
-# Read arguments
-HEADER_FILE="$1"
-FILE_PATTERN="$2"
+HEADER=${1:-HEADER-APACHE2}
+START_PATH=${2:-"./!(target)/**/*.rs"}
+CHECK_DIRTY=${CHECK_DIRTY:="false"}
+DRY_RUN=${DRY_RUN:-"false"}
 
-# Read the license header from the specified file
-if [ ! -f "$HEADER_FILE" ]; then
-  echo "Header file not found: $HEADER_FILE"
-  exit 1
-fi
+N=`wc -l "${HEADER}" | awk '{print $1}'`
 
-LICENSE_HEADER=$(cat "$HEADER_FILE")
+DIRTY=0
 
-# Loop through all Rust files matching the pattern
-shopt -s globstar
-for file in $FILE_PATTERN; do
-  if [[ -f "$file" && "$file" == *.rs ]]; then
-    if ! grep -q "Copyright 2024, Horizen Labs, Inc." "$file"; then
-      echo "Adding license header to $file"
-      echo -e "$LICENSE_HEADER\n$(cat $file)" > "$file"
+function add_header {
+    local path=$1;
+    local header=${2:-${HEADER}};
+
+    local tmp=`mktemp`
+
+    # Add \n at the top
+    echo "" > "${tmp}"
+    # Copy original
+    cat "${path}" >> "${tmp}"
+
+    if [ "${DRY_RUN}" == "true" ]; then
+        echo "Dry run... '${path}' - '${header}' - '${tmp}'";
+        return;
     fi
-  fi
+    if [ "${CHECK_DIRTY}" == "true" ]; then
+        return;
+    fi
+    # Mix them
+    cat "${header}" "${tmp}" > "${path}"
+}
+
+for f in ${START_PATH}; do
+    if ! diff <(head -n "${N}" "${f}") <(cat "${HEADER}") > /dev/null ; then 
+        echo "'${f}' Doesn't start with header from '${HEADER}': Add it";
+        add_header "${f}" "${HEADER}"
+        DIRTY=1
+    fi
 done
+
+if [[ "${CHECK_DIRTY}" == "true" && ${DIRTY} == 1 ]]; then
+    exit 1;
+fi
