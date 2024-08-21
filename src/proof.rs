@@ -43,4 +43,8 @@ impl DoryProof {
     pub fn new(proof: VerifiableQueryResult<DoryEvaluationProof>) -> Self {
         Self { proof }
     }
+
+    pub fn into_bytes(self) -> Vec<u8> {
+        bincode::serialize(&self.proof).unwrap()
+    }
 }

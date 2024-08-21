@@ -13,8 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use proof_of_sql::{base::commitment::QueryCommitments, proof_primitive::dory::{DoryCommitment, DoryScalar}, sql::{ast::ProofPlan, parse::QueryExpr, proof::QueryData}};
-
+use proof_of_sql::{
+    base::commitment::QueryCommitments,
+    proof_primitive::dory::{DoryCommitment, DoryScalar},
+    sql::{ast::ProofPlan, parse::QueryExpr, proof::QueryData},
+};
 
 pub struct DoryPublicInput<'a> {
     expr: &'a ProofPlan<DoryCommitment>,

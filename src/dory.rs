@@ -13,14 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{verify_generic::verify_proof, DoryProof, VerificationKey, VerifyError, DoryPublicInput};
+use crate::{
+    verify_generic::verify_proof, DoryProof, DoryPublicInput, VerificationKey, VerifyError,
+};
 
 pub fn verify_dory_proof<const N: usize>(
     proof: &DoryProof,
     pubs: &DoryPublicInput,
     vk: &VerificationKey<N>,
 ) -> Result<(), VerifyError> {
-
     verify_proof(
         proof.clone().into(),
         pubs.expr(),

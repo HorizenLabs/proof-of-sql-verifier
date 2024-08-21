@@ -179,11 +179,7 @@ mod dory {
         // Verify proof
         let proof = DoryProof::new(proof);
         let pubs = DoryPublicInput::new(&query, query_commitments, query_data);
-        let result = proof_of_sql_verifier::verify_dory_proof(
-            &proof,
-            &pubs,
-            &vk,
-        );
+        let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
         assert!(result.is_ok());
     }
@@ -214,11 +210,7 @@ mod dory {
 
         let dory_proof = DoryProof::new(proof);
         let pubs = DoryPublicInput::new(&non_existant_query, query_commitments, query_data);
-        let result = proof_of_sql_verifier::verify_dory_proof(
-            &dory_proof,
-            &pubs,
-            &vk,
-        );
+        let result = proof_of_sql_verifier::verify_dory_proof(&dory_proof, &pubs, &vk);
 
         assert!(result.is_ok());
     }
@@ -250,11 +242,7 @@ mod dory {
 
         let proof = DoryProof::new(proof);
         let pubs = DoryPublicInput::new(&query, no_commitments, query_data);
-        let result = proof_of_sql_verifier::verify_dory_proof(
-            &proof,
-            &pubs,
-            &vk,
-        );
+        let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
         assert!(result.is_err());
     }
@@ -291,11 +279,7 @@ mod dory {
         // Verify proof
         let proof = DoryProof::new(proof);
         let pubs = DoryPublicInput::new(&query, altered_query_commitments, query_data);
-        let result = proof_of_sql_verifier::verify_dory_proof(
-            &proof,
-            &pubs,
-            &vk,
-        );
+        let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
         assert!(result.is_err());
     }
@@ -331,11 +315,7 @@ mod dory {
 
         let proof = DoryProof::new(proof);
         let pubs = DoryPublicInput::new(&query, query_commitments, query_data);
-        let result = proof_of_sql_verifier::verify_dory_proof(
-            &proof,
-            &pubs,
-            &vk,
-        );
+        let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
         assert!(result.is_err());
     }
