@@ -4,7 +4,7 @@ set -euo pipefail
 shopt -s extglob
 
 HEADER=${1:-HEADER-APACHE2}
-START_PATH=${2:-"./!(target)/**/*.rs"}
+START_PATH=${2:-"./**/*.rs"}
 CHECK_DIRTY=${CHECK_DIRTY:="false"}
 DRY_RUN=${DRY_RUN:-"false"}
 

@@ -42,7 +42,7 @@ args = ["clippy", "--", "--deny", "warnings"]
 
 [tasks.header-add]
 script = { file = "./scripts/add_header_if_missing.sh" }
-args = ["HEADER-APACHE2", "./!(target)/**/*.rs"]
+args = ["HEADER-APACHE2", "./**/*.rs"]
 
 [tasks.header-check]
 env = { CHECK_DIRTY = "true", DRY_RUN = "true" }
