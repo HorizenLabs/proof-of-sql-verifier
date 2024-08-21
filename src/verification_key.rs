@@ -20,11 +20,28 @@ use proof_of_sql::proof_primitive::dory::{
 
 use crate::VerifyError;
 
+/// Represents a verification key for Dory proofs.
+///
+/// This structure wraps a `VerifierSetup` and provides methods for
+/// creating, deserializing, and converting the verification key.
+///
+/// # Type Parameters
+///
+/// * `N` - A const generic parameter representing the size of the verification key.
 pub struct VerificationKey<const N: usize>(VerifierSetup);
 
 impl<const N: usize> TryFrom<&[u8]> for VerificationKey<N> {
     type Error = VerifyError;
 
+    /// Attempts to create a VerificationKey from a byte slice.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The byte slice containing the serialized verification key.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Self, Self::Error>` - A VerificationKey if deserialization succeeds, or a VerifyError if it fails.
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         let setup = VerifierSetup::deserialize_compressed(value)
             .map_err(|_| VerifyError::InvalidVerificationKey)?;
@@ -41,15 +58,38 @@ impl<const N: usize> TryFrom<&[u8]> for VerificationKey<N> {
 }
 
 impl<const N: usize> VerificationKey<N> {
+    /// Creates a new VerificationKey from PublicParameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - A reference to PublicParameters.
+    ///
+    /// # Returns
+    ///
+    /// A new VerificationKey instance.
     pub fn new(params: &PublicParameters) -> Self {
         Self(VerifierSetup::from(params))
     }
 
+    /// Converts the VerificationKey into a DoryVerifierPublicSetup.
+    ///
+    /// # Returns
+    ///
+    /// A DoryVerifierPublicSetup instance.
     pub fn into_dory(&self) -> DoryVerifierPublicSetup<'_> {
         DoryVerifierPublicSetup::new(&self.0, N)
     }
 }
 
+/// Converts a byte slice to a usize.
+///
+/// # Arguments
+///
+/// * `slice` - The byte slice to convert.
+///
+/// # Returns
+///
+/// The usize value represented by the byte slice.
 fn slice_to_usize(slice: &[u8]) -> usize {
     let mut array = [0u8; std::mem::size_of::<usize>()];
     let len = slice.len().min(std::mem::size_of::<usize>());

@@ -27,6 +27,18 @@ pub use blitzar::proof::InnerProductProof;
 pub use curve25519_dalek::RistrettoPoint;
 pub use proof_of_sql::base::scalar::Curve25519Scalar;
 
+/// Verifies an inner product proof against the provided expression, commitments, and query data.
+///
+/// # Arguments
+///
+/// * `proof` - The inner product proof to be verified, wrapped in a VerifiableQueryResult.
+/// * `expr` - The proof plan expression.
+/// * `commitments` - The query commitments.
+/// * `query_data` - The query data.
+///
+/// # Returns
+///
+/// * `Result<(), VerifyError>` - Ok(()) if the proof is valid, or an error if verification fails.
 pub fn verify_inner_product_proof(
     proof: VerifiableQueryResult<InnerProductProof>,
     expr: &ProofPlan<RistrettoPoint>,

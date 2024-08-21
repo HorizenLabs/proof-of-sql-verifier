@@ -18,6 +18,14 @@ use proof_of_sql::sql::proof::VerifiableQueryResult;
 
 use crate::VerifyError;
 
+/// Represents a Dory proof.
+///
+/// `DoryProof` is a wrapper around a `VerifiableQueryResult<DoryEvaluationProof>`.
+/// It provides methods for creating, serializing, and deserializing Dory proofs.
+///
+/// # Fields
+///
+/// * `proof` - A `VerifiableQueryResult<DoryEvaluationProof>` containing the actual proof data.
 #[derive(Clone)]
 pub struct DoryProof {
     proof: VerifiableQueryResult<DoryEvaluationProof>,
@@ -26,6 +34,15 @@ pub struct DoryProof {
 impl TryFrom<&[u8]> for DoryProof {
     type Error = VerifyError;
 
+    /// Attempts to create a DoryProof from a byte slice.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The byte slice containing the serialized proof.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Self, Self::Error>` - A DoryProof if deserialization succeeds, or a VerifyError if it fails.
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         let proof = bincode::deserialize(value).map_err(|_| VerifyError::InvalidProofData)?;
 
@@ -34,16 +51,31 @@ impl TryFrom<&[u8]> for DoryProof {
 }
 
 impl Into<VerifiableQueryResult<DoryEvaluationProof>> for DoryProof {
+    /// Converts the DoryProof into a VerifiableQueryResult<DoryEvaluationProof>.
     fn into(self) -> VerifiableQueryResult<DoryEvaluationProof> {
         self.proof
     }
 }
 
 impl DoryProof {
+    /// Creates a new DoryProof.
+    ///
+    /// # Arguments
+    ///
+    /// * `proof` - A VerifiableQueryResult containing a DoryEvaluationProof.
+    ///
+    /// # Returns
+    ///
+    /// * `Self` - A new DoryProof instance.
     pub fn new(proof: VerifiableQueryResult<DoryEvaluationProof>) -> Self {
         Self { proof }
     }
 
+    /// Converts the DoryProof into a byte vector.
+    ///
+    /// # Returns
+    ///
+    /// * `Vec<u8>` - The serialized proof as a byte vector.
     pub fn into_bytes(self) -> Vec<u8> {
         bincode::serialize(&self.proof).unwrap()
     }

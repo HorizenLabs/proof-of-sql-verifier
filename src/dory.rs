@@ -17,6 +17,21 @@ use crate::{
     verify_generic::verify_proof, DoryProof, DoryPublicInput, VerificationKey, VerifyError,
 };
 
+/// Verifies a Dory proof against the provided public input and verification key.
+///
+/// # Arguments
+///
+/// * `proof` - The Dory proof to be verified.
+/// * `pubs` - The public input for the proof.
+/// * `vk` - The verification key used to verify the proof.
+///
+/// # Type Parameters
+///
+/// * `N` - A const generic parameter, likely related to the size of the verification key.
+///
+/// # Returns
+///
+/// * `Result<(), VerifyError>` - Ok(()) if the proof is valid, or an error if verification fails.
 pub fn verify_dory_proof<const N: usize>(
     proof: &DoryProof,
     pubs: &DoryPublicInput,

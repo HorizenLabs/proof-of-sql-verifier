@@ -19,6 +19,15 @@ use proof_of_sql::{
     sql::{ast::ProofPlan, parse::QueryExpr, proof::QueryData},
 };
 
+/// Represents the public input for a Dory proof.
+///
+/// This structure encapsulates the necessary public information required
+/// for verifying a Dory proof, including the proof expression, commitments,
+/// and query data.
+///
+/// # Type Parameters
+///
+/// * `'a` - The lifetime of the referenced `ProofPlan`.
 pub struct DoryPublicInput<'a> {
     expr: &'a ProofPlan<DoryCommitment>,
     commitments: QueryCommitments<DoryCommitment>,
@@ -26,6 +35,17 @@ pub struct DoryPublicInput<'a> {
 }
 
 impl<'a> DoryPublicInput<'a> {
+    /// Creates a new `DoryPublicInput` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `query_expr` - A reference to the query expression.
+    /// * `commitments` - The query commitments.
+    /// * `query_data` - The query data.
+    ///
+    /// # Returns
+    ///
+    /// A new `DoryPublicInput` instance.
     pub fn new(
         query_expr: &'a QueryExpr<DoryCommitment>,
         commitments: QueryCommitments<DoryCommitment>,
@@ -38,14 +58,17 @@ impl<'a> DoryPublicInput<'a> {
         }
     }
 
+    /// Returns a reference to the proof expression.
     pub fn expr(&self) -> &ProofPlan<DoryCommitment> {
         &self.expr
     }
 
+    /// Returns a reference to the query commitments.
     pub fn commitments(&self) -> &QueryCommitments<DoryCommitment> {
         &self.commitments
     }
 
+    /// Returns a reference to the query data.
     pub fn query_data(&self) -> &QueryData<DoryScalar> {
         &self.query_data
     }

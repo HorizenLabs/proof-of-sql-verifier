@@ -25,6 +25,23 @@ use proof_of_sql::{
 
 use crate::VerifyError;
 
+/// Verifies a generic proof against the provided expression, commitments, and query data.
+///
+/// # Type Parameters
+///
+/// * `CP` - A type that implements `CommitmentEvaluationProof`.
+///
+/// # Arguments
+///
+/// * `proof` - The proof to be verified, wrapped in a `VerifiableQueryResult`.
+/// * `expr` - The proof plan expression.
+/// * `commitments` - The query commitments.
+/// * `query_data` - The query data.
+/// * `setup` - The verifier's public setup.
+///
+/// # Returns
+///
+/// * `Result<(), VerifyError>` - Ok(()) if the proof is valid, or an error if verification fails.
 pub fn verify_proof<CP: CommitmentEvaluationProof>(
     proof: VerifiableQueryResult<CP>,
     expr: &ProofPlan<CP::Commitment>,

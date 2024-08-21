@@ -22,6 +22,9 @@ pub use proof_of_sql::{
     sql::{parse::QueryExpr, proof::ProofExpr, proof::VerifiableQueryResult},
 };
 
+// Helper functions for setting up test data and queries
+
+/// Computes query commitments for a given query expression and accessor.
 fn compute_query_commitments<C: Commitment>(
     query_expr: &QueryExpr<C>,
     accessor: &(impl CommitmentAccessor<C> + SchemaAccessor),
@@ -30,6 +33,7 @@ fn compute_query_commitments<C: Commitment>(
     QueryCommitments::from_accessor_with_max_bounds(columns, accessor)
 }
 
+/// Builds a test accessor with sample data.
 fn build_accessor<T: CommitmentEvaluationProof>(
     setup: <T as CommitmentEvaluationProof>::ProverPublicSetup<'_>,
 ) -> OwnedTableTestAccessor<T> {
@@ -45,6 +49,7 @@ fn build_accessor<T: CommitmentEvaluationProof>(
     accessor
 }
 
+/// Builds a test accessor with altered sample data.
 fn build_altered_accessor<T: CommitmentEvaluationProof>(
     setup: <T as CommitmentEvaluationProof>::ProverPublicSetup<'_>,
 ) -> OwnedTableTestAccessor<T> {
@@ -60,6 +65,7 @@ fn build_altered_accessor<T: CommitmentEvaluationProof>(
     accessor
 }
 
+/// Builds a test accessor with different table and column names.
 fn build_alien_accessor<T: CommitmentEvaluationProof>(
     setup: <T as CommitmentEvaluationProof>::ProverPublicSetup<'_>,
 ) -> OwnedTableTestAccessor<T> {
@@ -75,6 +81,7 @@ fn build_alien_accessor<T: CommitmentEvaluationProof>(
     accessor
 }
 
+/// Builds a sample query for testing.
 fn build_query<T: Commitment>(accessor: &impl SchemaAccessor) -> QueryExpr<T> {
     QueryExpr::try_new(
         "SELECT b FROM table WHERE a = 2".parse().unwrap(),
@@ -84,6 +91,7 @@ fn build_query<T: Commitment>(accessor: &impl SchemaAccessor) -> QueryExpr<T> {
     .unwrap()
 }
 
+/// Builds a sample query for the "alien" accessor.
 fn build_alien_query<T: Commitment>(accessor: &impl SchemaAccessor) -> QueryExpr<T> {
     QueryExpr::try_new(
         "SELECT d FROM table2 WHERE c = 2".parse().unwrap(),
@@ -93,6 +101,7 @@ fn build_alien_query<T: Commitment>(accessor: &impl SchemaAccessor) -> QueryExpr
     .unwrap()
 }
 
+/// Builds a query for a non-existent record.
 fn build_query_non_existant_record<T: Commitment>(accessor: &impl SchemaAccessor) -> QueryExpr<T> {
     QueryExpr::try_new(
         "SELECT b FROM table WHERE a = 4".parse().unwrap(),
@@ -108,6 +117,7 @@ mod inner_product {
 
     use blitzar::{self, proof::InnerProductProof};
 
+    /// Tests the generation and verification of an inner product proof.
     #[test]
     fn generate_and_verify_proof() {
         blitzar::compute::init_backend();
@@ -141,7 +151,6 @@ mod inner_product {
 }
 
 mod dory {
-
     use super::*;
 
     use proof_of_sql::proof_primitive::dory::{
@@ -151,6 +160,7 @@ mod dory {
     use proof_of_sql::base::commitment::QueryCommitments;
     use proof_of_sql_verifier::{DoryProof, DoryPublicInput, VerificationKey};
 
+    /// Tests the generation and verification of a Dory proof.
     #[test]
     fn generate_and_verify_proof() {
         // Initialize setup
@@ -184,6 +194,7 @@ mod dory {
         assert!(result.is_ok());
     }
 
+    /// Tests the generation and verification of a Dory proof for a non-existent record.
     #[test]
     fn generate_and_verify_proof_for_non_existant_record() {
         // Initialize setup
@@ -215,6 +226,7 @@ mod dory {
         assert!(result.is_ok());
     }
 
+    /// Tests that verification fails when commitments are missing.
     #[test]
     fn generate_and_verify_proof_without_commitments() {
         // Initialize setup
@@ -247,6 +259,7 @@ mod dory {
         assert!(result.is_err());
     }
 
+    /// Tests that verification fails when the underlying data has been altered.
     #[test]
     fn generate_and_verify_proof_for_altered_data() {
         // Initialize setup
@@ -284,6 +297,7 @@ mod dory {
         assert!(result.is_err());
     }
 
+    /// Tests that verification fails when using commitments from a different accessor.
     #[test]
     fn generate_and_verify_proof_from_alien_accessor() {
         // Initialize setup
