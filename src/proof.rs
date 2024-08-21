@@ -50,13 +50,6 @@ impl TryFrom<&[u8]> for DoryProof {
     }
 }
 
-impl Into<VerifiableQueryResult<DoryEvaluationProof>> for DoryProof {
-    /// Converts the DoryProof into a VerifiableQueryResult<DoryEvaluationProof>.
-    fn into(self) -> VerifiableQueryResult<DoryEvaluationProof> {
-        self.proof
-    }
-}
-
 impl DoryProof {
     /// Creates a new DoryProof.
     ///
@@ -78,5 +71,14 @@ impl DoryProof {
     /// * `Vec<u8>` - The serialized proof as a byte vector.
     pub fn into_bytes(self) -> Vec<u8> {
         bincode::serialize(&self.proof).unwrap()
+    }
+
+    /// Converts the DoryProof into a VerifiableQueryResult<DoryEvaluationProof>.
+    ///
+    /// # Returns
+    ///
+    /// * `VerifiableQueryResult<DoryEvaluationProof>` - The proof data.
+    pub fn into_dory(self) -> VerifiableQueryResult<DoryEvaluationProof> {
+        self.proof
     }
 }

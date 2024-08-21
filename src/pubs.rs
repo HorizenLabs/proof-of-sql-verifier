@@ -60,7 +60,7 @@ impl<'a> DoryPublicInput<'a> {
 
     /// Returns a reference to the proof expression.
     pub fn expr(&self) -> &ProofPlan<DoryCommitment> {
-        &self.expr
+        self.expr
     }
 
     /// Returns a reference to the query commitments.

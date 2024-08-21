@@ -38,7 +38,7 @@ pub fn verify_dory_proof<const N: usize>(
     vk: &VerificationKey<N>,
 ) -> Result<(), VerifyError> {
     verify_proof(
-        proof.clone().into(),
+        proof.clone().into_dory(),
         pubs.expr(),
         pubs.commitments(),
         pubs.query_data(),
