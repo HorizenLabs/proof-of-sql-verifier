@@ -142,7 +142,7 @@ impl DoryPublicInput {
                     bincode::serialize_into(&mut expr_bytes, unit).unwrap();
                     bincode::serialize_into(&mut expr_bytes, zone).unwrap();
                     bincode::serialize_into(&mut expr_bytes, vv).unwrap();
-                },
+                }
                 &_ => {
                     return Err(VerifyError::InvalidInput);
                 }
