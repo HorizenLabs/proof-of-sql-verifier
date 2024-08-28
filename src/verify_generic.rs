@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use proof_of_sql::base::commitment::CommitmentEvaluationProof;
-use proof_of_sql::sql::proof::ProofExpr;
+use proof_of_sql::sql::proof::ProofExecutionPlan;
 use proof_of_sql::{
     base::commitment::QueryCommitments,
     sql::{

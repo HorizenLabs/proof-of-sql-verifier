@@ -32,11 +32,29 @@ use crate::{
 /// # Returns
 ///
 /// * `Result<(), VerifyError>` - Ok(()) if the proof is valid, or an error if verification fails.
-pub fn verify_dory_proof<const N: usize>(
+pub fn verify_dory_proof(
     proof: &DoryProof,
     pubs: &DoryPublicInput,
-    vk: &VerificationKey<N>,
+    vk: &VerificationKey,
 ) -> Result<(), VerifyError> {
+    verify_proof(
+        proof.clone().into_dory(),
+        pubs.expr(),
+        pubs.commitments(),
+        pubs.query_data(),
+        &vk.into_dory(),
+    )
+}
+
+pub fn verify(
+    proof: &[u8],
+    public_input: &[u8],
+    verification_key: &[u8],
+) -> Result<(), VerifyError> {
+    let proof = DoryProof::try_from(proof)?;
+    let pubs = DoryPublicInput::try_from(public_input)?;
+    let vk = VerificationKey::try_from(verification_key)?;
+
     verify_proof(
         proof.clone().into_dory(),
         pubs.expr(),

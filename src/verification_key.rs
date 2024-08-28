@@ -24,13 +24,12 @@ use crate::VerifyError;
 ///
 /// This structure wraps a `VerifierSetup` and provides methods for
 /// creating, deserializing, and converting the verification key.
-///
-/// # Type Parameters
-///
-/// * `N` - A const generic parameter representing the size of the verification key.
-pub struct VerificationKey<const N: usize>(VerifierSetup);
+pub struct VerificationKey {
+    setup: VerifierSetup,
+    max_nu: usize,
+}
 
-impl<const N: usize> TryFrom<&[u8]> for VerificationKey<N> {
+impl TryFrom<&[u8]> for VerificationKey {
     type Error = VerifyError;
 
     /// Attempts to create a VerificationKey from a byte slice.
@@ -49,15 +48,12 @@ impl<const N: usize> TryFrom<&[u8]> for VerificationKey<N> {
         // read last usize from the buffer as max_nu is the last field in the struct, and check if it matches N
         // max_nu is not accessible from the VerifierSetup struct, so we need to check it from the buffer
         let max_nu = slice_to_usize(&value[value.len() - std::mem::size_of::<usize>()..]);
-        if max_nu != N {
-            return Err(VerifyError::InvalidVerificationKey);
-        }
 
-        Ok(Self(setup))
+        Ok(Self { setup, max_nu })
     }
 }
 
-impl<const N: usize> VerificationKey<N> {
+impl VerificationKey {
     /// Creates a new VerificationKey from PublicParameters.
     ///
     /// # Arguments
@@ -67,8 +63,11 @@ impl<const N: usize> VerificationKey<N> {
     /// # Returns
     ///
     /// A new VerificationKey instance.
-    pub fn new(params: &PublicParameters) -> Self {
-        Self(VerifierSetup::from(params))
+    pub fn new(params: &PublicParameters, max_nu: usize) -> Self {
+        Self {
+            setup: VerifierSetup::from(params),
+            max_nu,
+        }
     }
 
     /// Converts the VerificationKey into a DoryVerifierPublicSetup.
@@ -77,7 +76,7 @@ impl<const N: usize> VerificationKey<N> {
     ///
     /// A DoryVerifierPublicSetup instance.
     pub fn into_dory(&self) -> DoryVerifierPublicSetup<'_> {
-        DoryVerifierPublicSetup::new(&self.0, N)
+        DoryVerifierPublicSetup::new(&self.setup, self.max_nu)
     }
 }
 
@@ -112,7 +111,7 @@ mod test {
         let mut writer = Vec::new();
         vs.serialize_compressed(&mut writer).unwrap();
 
-        let verification_key = VerificationKey::<4>::try_from(writer.as_ref()).unwrap();
+        let verification_key = VerificationKey::try_from(writer.as_ref()).unwrap();
         let dory_key = verification_key.into_dory();
 
         assert_eq!(dory_key.verifier_setup(), &vs);
@@ -125,7 +124,7 @@ mod test {
         let mut writer = Vec::new();
         vs.serialize_compressed(&mut writer).unwrap();
 
-        let verification_key = VerificationKey::<4>::try_from(&writer[..writer.len() - 1]);
+        let verification_key = VerificationKey::try_from(&writer[..writer.len() - 1]);
         assert!(verification_key.is_err());
     }
 }
