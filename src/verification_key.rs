@@ -13,20 +13,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use ark_serialize::CanonicalDeserialize;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use proof_of_sql::proof_primitive::dory::{
     DoryVerifierPublicSetup, PublicParameters, VerifierSetup,
 };
 
 use crate::VerifyError;
 
+const GT_SERIALIZED_SIZE: usize = 576;
+const G1_AFFINE_SERIALIZED_SIZE: usize = 48;
+const G2_AFFINE_SERIALIZED_SIZE: usize = 96;
+
 /// Represents a verification key for Dory proofs.
 ///
 /// This structure wraps a `VerifierSetup` and provides methods for
 /// creating, deserializing, and converting the verification key.
+#[derive(Clone, Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct VerificationKey {
     setup: VerifierSetup,
-    max_nu: usize,
+    sigma: usize,
 }
 
 impl TryFrom<&[u8]> for VerificationKey {
@@ -42,14 +47,8 @@ impl TryFrom<&[u8]> for VerificationKey {
     ///
     /// * `Result<Self, Self::Error>` - A VerificationKey if deserialization succeeds, or a VerifyError if it fails.
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let setup = VerifierSetup::deserialize_compressed(value)
-            .map_err(|_| VerifyError::InvalidVerificationKey)?;
-
-        // read last usize from the buffer as max_nu is the last field in the struct, and check if it matches N
-        // max_nu is not accessible from the VerifierSetup struct, so we need to check it from the buffer
-        let max_nu = slice_to_usize(&value[value.len() - std::mem::size_of::<usize>()..]);
-
-        Ok(Self { setup, max_nu })
+        VerificationKey::deserialize_compressed(value)
+            .map_err(|_| VerifyError::InvalidVerificationKey)
     }
 }
 
@@ -63,11 +62,18 @@ impl VerificationKey {
     /// # Returns
     ///
     /// A new VerificationKey instance.
-    pub fn new(params: &PublicParameters, max_nu: usize) -> Self {
+    pub fn new(params: &PublicParameters, sigma: usize) -> Self {
         Self {
             setup: VerifierSetup::from(params),
-            max_nu,
+            sigma,
         }
+    }
+
+    /// Converts the verification key into a byte array.
+    pub fn into_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+        VerificationKey::serialize_compressed(&self, &mut buf).unwrap();
+        buf
     }
 
     /// Converts the VerificationKey into a DoryVerifierPublicSetup.
@@ -76,55 +82,94 @@ impl VerificationKey {
     ///
     /// A DoryVerifierPublicSetup instance.
     pub fn into_dory(&self) -> DoryVerifierPublicSetup<'_> {
-        DoryVerifierPublicSetup::new(&self.setup, self.max_nu)
+        DoryVerifierPublicSetup::new(&self.setup, self.sigma)
     }
-}
 
-/// Converts a byte slice to a usize.
-///
-/// # Arguments
-///
-/// * `slice` - The byte slice to convert.
-///
-/// # Returns
-///
-/// The usize value represented by the byte slice.
-fn slice_to_usize(slice: &[u8]) -> usize {
-    let mut array = [0u8; std::mem::size_of::<usize>()];
-    let len = slice.len().min(std::mem::size_of::<usize>());
-    array[..len].copy_from_slice(&slice[..len]);
-
-    usize::from_le_bytes(array)
+    /// Computes the serialized size of a VerificationKey.
+    ///
+    /// # Arguments
+    ///
+    /// * `max_nu`
+    ///
+    /// # Returns
+    ///
+    /// The size in bytes of the serialized VerificationKey.
+    pub fn serialized_size(max_nu: usize) -> usize {
+        5 * (size_of::<usize>() + (max_nu + 1) * GT_SERIALIZED_SIZE) // Delta_1L, Delta_1R, Delta_2L, Delta_2R, chi
+        + 2 * G1_AFFINE_SERIALIZED_SIZE// Gamma_1_0, H_1
+        + 3 * G2_AFFINE_SERIALIZED_SIZE // Gamma_2_0, H_2, Gamma_2_fin
+        + GT_SERIALIZED_SIZE // H_T
+        + 2 * size_of::<usize>() // max_nu, sigma
+    }
 }
 
 #[cfg(test)]
 mod test {
     use ark_serialize::CanonicalSerialize;
     use proof_of_sql::proof_primitive::dory::{test_rng, PublicParameters};
+    use rstest::*;
 
     use super::*;
 
     #[test]
     fn test_verification_key() {
         let public_parameters = PublicParameters::rand(4, &mut test_rng());
-        let vs: VerifierSetup = VerifierSetup::from(&public_parameters);
-        let mut writer = Vec::new();
-        vs.serialize_compressed(&mut writer).unwrap();
+        let vk = VerificationKey::new(&public_parameters, 1);
+        let serialized_vk = vk.into_bytes();
+        let deserialized_vk = VerificationKey::try_from(serialized_vk.as_slice()).unwrap();
+        let dory_key = deserialized_vk.into_dory();
 
-        let verification_key = VerificationKey::try_from(writer.as_ref()).unwrap();
-        let dory_key = verification_key.into_dory();
-
-        assert_eq!(dory_key.verifier_setup(), &vs);
+        assert_eq!(dory_key.verifier_setup(), &vk.setup);
     }
 
     #[test]
     fn test_verification_key_short_buffer() {
         let public_parameters = PublicParameters::rand(4, &mut test_rng());
-        let vs: VerifierSetup = VerifierSetup::from(&public_parameters);
-        let mut writer = Vec::new();
-        vs.serialize_compressed(&mut writer).unwrap();
+        let vk = VerificationKey::new(&public_parameters, 1);
+        let serialized_vk = vk.into_bytes();
+        let deserialized_vk = VerificationKey::try_from(&serialized_vk[..serialized_vk.len() - 1]);
+        assert!(deserialized_vk.is_err());
+    }
 
-        let verification_key = VerificationKey::try_from(&writer[..writer.len() - 1]);
-        assert!(verification_key.is_err());
+    #[test]
+    fn gt_serialized_size() {
+        type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
+        let gt = GT::default();
+        let mut buffer = Vec::new();
+        gt.serialize_compressed(&mut buffer).unwrap();
+        assert_eq!(GT_SERIALIZED_SIZE, buffer.len());
+    }
+
+    #[test]
+    fn g1_affine_serialized_size() {
+        type G1Affine = ark_ec::models::bls12::G1Affine<ark_bls12_381::Config>;
+        let g1_affine = G1Affine::default();
+        let mut buffer = Vec::new();
+        g1_affine.serialize_compressed(&mut buffer).unwrap();
+        assert_eq!(G1_AFFINE_SERIALIZED_SIZE, buffer.len());
+    }
+
+    #[test]
+    fn g2_affine_serialized_size() {
+        type G2Affine = ark_ec::models::bls12::G2Affine<ark_bls12_381::Config>;
+        let g2_affine = G2Affine::default();
+        let mut buffer = Vec::new();
+        g2_affine.serialize_compressed(&mut buffer).unwrap();
+        assert_eq!(G2_AFFINE_SERIALIZED_SIZE, buffer.len());
+    }
+
+    #[rstest]
+    #[case::max_nu_0(0)]
+    #[case::max_nu_1(1)]
+    #[case::max_nu_2(2)]
+    #[case::max_nu_5(5)]
+    fn verification_key_size(#[case] max_nu: usize) {
+        let public_parameters = PublicParameters::rand(max_nu, &mut test_rng());
+        let vk = VerificationKey::new(&public_parameters, 1);
+        let vk_serialized = vk.into_bytes();
+        assert_eq!(
+            vk_serialized.len(),
+            VerificationKey::serialized_size(max_nu)
+        )
     }
 }
