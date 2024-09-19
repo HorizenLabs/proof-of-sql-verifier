@@ -114,45 +114,6 @@ fn build_query_non_existant_record<T: Commitment>(accessor: &impl SchemaAccessor
     .unwrap()
 }
 
-#[cfg(feature = "inner-product")]
-mod inner_product {
-    use super::*;
-
-    use blitzar::{self, proof::InnerProductProof};
-
-    /// Tests the generation and verification of an inner product proof.
-    #[test]
-    fn generate_and_verify_proof() {
-        blitzar::compute::init_backend();
-
-        let prover_setup = ();
-        let verifier_setup = ();
-
-        let accessor: OwnedTableTestAccessor<InnerProductProof> = build_accessor(prover_setup);
-        let query = build_query(&accessor);
-
-        let proof = VerifiableQueryResult::<InnerProductProof>::new(
-            query.proof_expr(),
-            &accessor,
-            &prover_setup,
-        );
-
-        let query_data = proof
-            .verify(query.proof_expr(), &accessor, &verifier_setup)
-            .unwrap();
-        let query_commitments = compute_query_commitments(&query, &accessor);
-
-        let result = proof_of_sql_verifier::verify_inner_product_proof(
-            proof,
-            query.proof_expr(),
-            &query_commitments,
-            &query_data,
-        );
-
-        assert!(result.is_ok());
-    }
-}
-
 mod dory {
     use super::*;
 

@@ -27,9 +27,3 @@ pub use proof::*;
 pub use pubs::*;
 pub use verification_key::*;
 pub use verify_generic::*;
-
-#[cfg(feature = "inner-product")]
-pub mod inner_product;
-
-#[cfg(feature = "inner-product")]
-pub use inner_product::*;
