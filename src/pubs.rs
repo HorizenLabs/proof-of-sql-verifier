@@ -21,7 +21,7 @@ use proof_of_sql::{
         math::decimal::Precision,
     },
     proof_primitive::dory::{DoryCommitment, DoryScalar},
-    sql::{ast::ProofPlan, proof::QueryData},
+    sql::{proof::QueryData, proof_plans::DynProofPlan},
 };
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
@@ -36,7 +36,7 @@ use crate::VerifyError;
 /// for verifying a Dory proof, including the proof expression, commitments,
 /// and query data.
 pub struct DoryPublicInput {
-    expr: ProofPlan<DoryCommitment>,
+    expr: DynProofPlan<DoryCommitment>,
     commitments: QueryCommitments<DoryCommitment>,
     query_data: QueryData<DoryScalar>,
 }
@@ -62,13 +62,13 @@ impl DoryPublicInput {
     ///
     /// A new `DoryPublicInput` instance.
     pub fn new(
-        expr: &ProofPlan<DoryCommitment>,
+        expr: &DynProofPlan<DoryCommitment>,
         commitments: QueryCommitments<DoryCommitment>,
         query_data: QueryData<DoryScalar>,
     ) -> Self {
         // Copy trait is not implemented for ProofPlan, so we serialize and deserialize
         let bytes = bincode::serialize(&expr).unwrap();
-        let expr: ProofPlan<DoryCommitment> = bincode::deserialize(&bytes).unwrap();
+        let expr: DynProofPlan<DoryCommitment> = bincode::deserialize(&bytes).unwrap();
         Self {
             expr,
             commitments,
@@ -77,7 +77,7 @@ impl DoryPublicInput {
     }
 
     /// Returns a reference to the proof expression.
-    pub fn expr(&self) -> &ProofPlan<DoryCommitment> {
+    pub fn expr(&self) -> &DynProofPlan<DoryCommitment> {
         &self.expr
     }
 
@@ -159,7 +159,7 @@ impl DoryPublicInput {
         let mut cursor = std::io::Cursor::new(bytes);
 
         // Deserialize the expression
-        let expr: ProofPlan<DoryCommitment> = bincode::deserialize_from(&mut cursor)?;
+        let expr: DynProofPlan<DoryCommitment> = bincode::deserialize_from(&mut cursor)?;
 
         // Deserialize the commitments
         let commitments: QueryCommitments<DoryCommitment> = bincode::deserialize_from(&mut cursor)?;
@@ -238,7 +238,6 @@ impl DoryPublicInput {
 #[cfg(test)]
 mod test {
 
-    use proof_of_sql::sql::proof::ProofExecutionPlan;
     use proof_of_sql::{
         base::{
             commitment::{Commitment, CommitmentEvaluationProof, QueryCommitmentsExt},
@@ -250,7 +249,10 @@ mod test {
         proof_primitive::dory::{
             test_rng, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
         },
-        sql::{parse::QueryExpr, proof::VerifiableQueryResult},
+        sql::{
+            parse::QueryExpr,
+            proof::{ProofPlan, VerifiableQueryResult},
+        },
     };
 
     use crate::{DoryProof, VerificationKey};

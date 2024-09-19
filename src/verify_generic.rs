@@ -14,13 +14,11 @@
 // limitations under the License.
 
 use proof_of_sql::base::commitment::CommitmentEvaluationProof;
-use proof_of_sql::sql::proof::ProofExecutionPlan;
+use proof_of_sql::sql::proof::ProofPlan;
+use proof_of_sql::sql::proof_plans::DynProofPlan;
 use proof_of_sql::{
     base::commitment::QueryCommitments,
-    sql::{
-        ast::ProofPlan,
-        proof::{QueryData, VerifiableQueryResult},
-    },
+    sql::proof::{QueryData, VerifiableQueryResult},
 };
 
 use crate::VerifyError;
@@ -44,7 +42,7 @@ use crate::VerifyError;
 /// * `Result<(), VerifyError>` - Ok(()) if the proof is valid, or an error if verification fails.
 pub fn verify_proof<CP: CommitmentEvaluationProof>(
     proof: VerifiableQueryResult<CP>,
-    expr: &ProofPlan<CP::Commitment>,
+    expr: &DynProofPlan<CP::Commitment>,
     commitments: &QueryCommitments<CP::Commitment>,
     query_data: &QueryData<CP::Scalar>,
     setup: &CP::VerifierPublicSetup<'_>,

@@ -14,13 +14,15 @@
 // limitations under the License.
 
 use proof_of_sql::base::{commitment::QueryCommitments, database::CommitmentAccessor};
-use proof_of_sql::sql::proof::ProofExecutionPlan;
 pub use proof_of_sql::{
     base::{
         commitment::{Commitment, CommitmentEvaluationProof, QueryCommitmentsExt},
         database::{owned_table_utility::*, OwnedTableTestAccessor, SchemaAccessor, TestAccessor},
     },
-    sql::{parse::QueryExpr, proof::VerifiableQueryResult},
+    sql::{
+        parse::QueryExpr,
+        proof::{ProofPlan, VerifiableQueryResult},
+    },
 };
 
 // Helper functions for setting up test data and queries
