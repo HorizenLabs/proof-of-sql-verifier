@@ -72,7 +72,7 @@ impl VerificationKey {
     /// Converts the verification key into a byte array.
     pub fn into_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
-        VerificationKey::serialize_compressed(&self, &mut buf).unwrap();
+        self.serialize_compressed(&mut buf).unwrap();
         buf
     }
 
