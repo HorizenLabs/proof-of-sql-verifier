@@ -8,10 +8,9 @@ ark-bls12-381 = { version = "0.4.0", default-features = false }
 ark-ec = { version = "0.4.0", default-features = false }
 ark-serialize = { version = "0.4.0", default-features = false }
 bincode = "1"
-indexmap = { version = "2.1" }
-proof-of-sql = { version = "0.22.7", default-features = false }
-proof-of-sql-parser = { version = "0.22.7" }
+proof-of-sql = { version = "0.25.3", default-features = false }
+proof-of-sql-parser = { version = "0.25.3", default-features = false }
 
 [dev-dependencies]
-proof-of-sql = { version = "0.22.7", default-features = false, features = ["test"] }
+proof-of-sql = { version = "0.25.3", default-features = false, features = ["test"] }
 rstest = { version = "0.22.0" }

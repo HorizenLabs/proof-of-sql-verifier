@@ -221,7 +221,7 @@ mod dory {
             let query_data = proof
                 .verify(query.proof_expr(), &accessor, &vk.into_dory())
                 .unwrap();
-            let no_commitments = QueryCommitments::new();
+            let no_commitments = QueryCommitments::default();
 
             let proof = DoryProof::new(proof);
             let pubs = DoryPublicInput::new(query.proof_expr(), no_commitments, query_data);

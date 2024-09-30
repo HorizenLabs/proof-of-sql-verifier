@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use indexmap::IndexMap;
 use proof_of_sql::{
     base::{
         commitment::QueryCommitments,
@@ -167,8 +166,8 @@ impl DoryPublicInput {
         let table_len: u32 = bincode::deserialize_from(&mut cursor)?;
 
         // Deserialize the table data
-        let mut table = IndexMap::<Identifier, OwnedColumn<_>>::new();
-        while cursor.position() < bytes.len() as u64 && table.len() < table_len as usize {
+        let mut vector = Vec::<(Identifier, OwnedColumn<_>)>::new();
+        while cursor.position() < bytes.len() as u64 && vector.len() < table_len as usize {
             let k: String = bincode::deserialize_from(&mut cursor)?;
             let column_type: ColumnType = bincode::deserialize_from(&mut cursor)?;
             let identifier =
@@ -217,13 +216,14 @@ impl DoryPublicInput {
                 }
             };
 
-            table.insert(identifier, column);
+            vector.push((identifier, column));
         }
+        let table = OwnedTable::try_from_iter(vector)
+            .map_err(|e| bincode::ErrorKind::Custom(e.to_string()))?;
 
         let verification_hash: [u8; 32] = bincode::deserialize_from(&mut cursor)?;
         let query_data = QueryData {
-            table: OwnedTable::try_new(table)
-                .map_err(|e| bincode::ErrorKind::Custom(e.to_string()))?,
+            table,
             verification_hash,
         };
 
