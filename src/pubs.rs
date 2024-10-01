@@ -15,17 +15,9 @@
 
 use crate::serde::QueryDataDef;
 use proof_of_sql::{
-    base::{
-        commitment::QueryCommitments,
-        database::{ColumnType, OwnedColumn, OwnedTable},
-        math::decimal::Precision,
-    },
+    base::commitment::QueryCommitments,
     proof_primitive::dory::{DoryCommitment, DoryScalar},
     sql::{proof::QueryData, proof_plans::DynProofPlan},
-};
-use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-    Identifier,
 };
 use serde::{Deserialize, Serialize};
 
@@ -70,8 +62,8 @@ impl DoryPublicInput {
         query_data: QueryData<DoryScalar>,
     ) -> Self {
         // Copy trait is not implemented for ProofPlan, so we serialize and deserialize
-        let bytes = bincode::serialize(&expr).unwrap();
-        let expr: DynProofPlan<DoryCommitment> = bincode::deserialize(&bytes).unwrap();
+        let bytes = serde_cbor::to_vec(&expr).unwrap();
+        let expr: DynProofPlan<DoryCommitment> = serde_cbor::from_slice(&bytes).unwrap();
         Self {
             expr,
             commitments,
@@ -96,146 +88,12 @@ impl DoryPublicInput {
 
     /// Converts the public input into a byte array.
     pub fn into_bytes(&self) -> Result<Vec<u8>, VerifyError> {
-        let mut expr_bytes = Vec::new();
-
-        // Serialize the expression
-        bincode::serialize_into(&mut expr_bytes, &self.expr).unwrap();
-
-        // Serialize the commitments
-        bincode::serialize_into(&mut expr_bytes, &self.commitments).unwrap();
-
-        // Serialize the table data
-        let table = self.query_data.table.inner_table();
-
-        // usize is serialized as u32, as usize is platform dependent
-        bincode::serialize_into(&mut expr_bytes, &(table.len() as u32)).unwrap();
-
-        for (k, v) in table {
-            bincode::serialize_into(&mut expr_bytes, k).unwrap();
-            bincode::serialize_into(&mut expr_bytes, &v.column_type()).unwrap();
-
-            match v {
-                OwnedColumn::Boolean(v) => {
-                    bincode::serialize_into(&mut expr_bytes, v).unwrap();
-                }
-                OwnedColumn::SmallInt(v) => {
-                    bincode::serialize_into(&mut expr_bytes, v).unwrap();
-                }
-                OwnedColumn::Int(v) => {
-                    bincode::serialize_into(&mut expr_bytes, v).unwrap();
-                }
-                OwnedColumn::BigInt(v) => {
-                    bincode::serialize_into(&mut expr_bytes, v).unwrap();
-                }
-                OwnedColumn::VarChar(v) => {
-                    bincode::serialize_into(&mut expr_bytes, v).unwrap();
-                }
-                OwnedColumn::Int128(v) => {
-                    bincode::serialize_into(&mut expr_bytes, v).unwrap();
-                }
-                OwnedColumn::Decimal75(precision, scale, v) => {
-                    bincode::serialize_into(&mut expr_bytes, precision).unwrap();
-                    bincode::serialize_into(&mut expr_bytes, scale).unwrap();
-                    bincode::serialize_into(&mut expr_bytes, v).unwrap();
-                }
-                OwnedColumn::Scalar(v) => {
-                    bincode::serialize_into(&mut expr_bytes, v).unwrap();
-                }
-                OwnedColumn::TimestampTZ(unit, zone, vv) => {
-                    bincode::serialize_into(&mut expr_bytes, unit).unwrap();
-                    bincode::serialize_into(&mut expr_bytes, zone).unwrap();
-                    bincode::serialize_into(&mut expr_bytes, vv).unwrap();
-                }
-                &_ => {
-                    return Err(VerifyError::InvalidInput);
-                }
-            }
-        }
-
-        bincode::serialize_into(&mut expr_bytes, &self.query_data.verification_hash).unwrap();
-
-        Ok(expr_bytes)
+        serde_cbor::to_vec(self).map_err(|_| VerifyError::InvalidInput)
     }
 
     /// Converts a byte array into a `DoryPublicInput` instance.
-    fn from_bytes(bytes: &[u8]) -> Result<Self, bincode::Error> {
-        let mut cursor = std::io::Cursor::new(bytes);
-
-        // Deserialize the expression
-        let expr: DynProofPlan<DoryCommitment> = bincode::deserialize_from(&mut cursor)?;
-
-        // Deserialize the commitments
-        let commitments: QueryCommitments<DoryCommitment> = bincode::deserialize_from(&mut cursor)?;
-
-        let table_len: u32 = bincode::deserialize_from(&mut cursor)?;
-
-        // Deserialize the table data
-        let mut vector = Vec::<(Identifier, OwnedColumn<_>)>::new();
-        while cursor.position() < bytes.len() as u64 && vector.len() < table_len as usize {
-            let k: String = bincode::deserialize_from(&mut cursor)?;
-            let column_type: ColumnType = bincode::deserialize_from(&mut cursor)?;
-            let identifier =
-                Identifier::try_new(k).map_err(|e| bincode::ErrorKind::Custom(e.to_string()))?;
-
-            let column: OwnedColumn<DoryScalar> = match column_type {
-                ColumnType::Boolean => {
-                    let v: Vec<bool> = bincode::deserialize_from(&mut cursor)?;
-                    OwnedColumn::Boolean(v)
-                }
-                ColumnType::SmallInt => {
-                    let v: Vec<i16> = bincode::deserialize_from(&mut cursor)?;
-                    OwnedColumn::SmallInt(v)
-                }
-                ColumnType::Int => {
-                    let v: Vec<i32> = bincode::deserialize_from(&mut cursor)?;
-                    OwnedColumn::Int(v)
-                }
-                ColumnType::BigInt => {
-                    let v: Vec<i64> = bincode::deserialize_from(&mut cursor)?;
-                    OwnedColumn::BigInt(v)
-                }
-                ColumnType::VarChar => {
-                    let v: Vec<String> = bincode::deserialize_from(&mut cursor)?;
-                    OwnedColumn::VarChar(v)
-                }
-                ColumnType::Int128 => {
-                    let v: Vec<i128> = bincode::deserialize_from(&mut cursor)?;
-                    OwnedColumn::Int128(v)
-                }
-                ColumnType::Decimal75(_, _) => {
-                    let precision: Precision = bincode::deserialize_from(&mut cursor)?;
-                    let scale: i8 = bincode::deserialize_from(&mut cursor)?;
-                    let v: Vec<DoryScalar> = bincode::deserialize_from(&mut cursor)?;
-                    OwnedColumn::Decimal75(precision, scale, v)
-                }
-                ColumnType::Scalar => {
-                    let v: Vec<DoryScalar> = bincode::deserialize_from(&mut cursor)?;
-                    OwnedColumn::Scalar(v)
-                }
-                ColumnType::TimestampTZ(_, _) => {
-                    let unit: PoSQLTimeUnit = bincode::deserialize_from(&mut cursor)?;
-                    let zone: PoSQLTimeZone = bincode::deserialize_from(&mut cursor)?;
-                    let vv: Vec<i64> = bincode::deserialize_from(&mut cursor)?;
-                    OwnedColumn::TimestampTZ(unit, zone, vv)
-                }
-            };
-
-            vector.push((identifier, column));
-        }
-        let table = OwnedTable::try_from_iter(vector)
-            .map_err(|e| bincode::ErrorKind::Custom(e.to_string()))?;
-
-        let verification_hash: [u8; 32] = bincode::deserialize_from(&mut cursor)?;
-        let query_data = QueryData {
-            table,
-            verification_hash,
-        };
-
-        Ok(DoryPublicInput {
-            expr,
-            commitments,
-            query_data,
-        })
+    fn from_bytes(bytes: &[u8]) -> Result<Self, serde_cbor::Error> {
+        serde_cbor::from_slice(bytes)
     }
 }
 

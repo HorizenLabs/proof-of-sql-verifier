@@ -44,7 +44,7 @@ impl TryFrom<&[u8]> for DoryProof {
     ///
     /// * `Result<Self, Self::Error>` - A DoryProof if deserialization succeeds, or a VerifyError if it fails.
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let proof = bincode::deserialize(value).map_err(|_| VerifyError::InvalidProofData)?;
+        let proof = serde_cbor::from_slice(value).map_err(|_| VerifyError::InvalidProofData)?;
 
         Ok(Self::new(proof))
     }
@@ -70,7 +70,7 @@ impl DoryProof {
     ///
     /// * `Vec<u8>` - The serialized proof as a byte vector.
     pub fn into_bytes(self) -> Vec<u8> {
-        bincode::serialize(&self.proof).unwrap()
+        serde_cbor::to_vec(&self.proof).unwrap()
     }
 
     /// Converts the DoryProof into a VerifiableQueryResult<DoryEvaluationProof>.
