@@ -18,6 +18,7 @@ mod proof;
 mod pubs;
 mod verification_key;
 mod verify_generic;
+mod serde;
 
 pub mod dory;
 pub use dory::*;

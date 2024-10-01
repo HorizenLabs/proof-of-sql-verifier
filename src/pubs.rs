@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::serde::QueryDataDef;
 use proof_of_sql::{
     base::{
         commitment::QueryCommitments,
@@ -26,6 +27,7 @@ use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::VerifyError;
 
@@ -34,9 +36,11 @@ use crate::VerifyError;
 /// This structure encapsulates the necessary public information required
 /// for verifying a Dory proof, including the proof expression, commitments,
 /// and query data.
+#[derive(Serialize, Deserialize)]
 pub struct DoryPublicInput {
     expr: DynProofPlan<DoryCommitment>,
     commitments: QueryCommitments<DoryCommitment>,
+    #[serde(with = "QueryDataDef")]
     query_data: QueryData<DoryScalar>,
 }
 
