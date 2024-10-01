@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::serde::QueryDataDef;
+use alloc::vec::Vec;
 use proof_of_sql::{
     base::commitment::QueryCommitments,
     proof_primitive::dory::{DoryCommitment, DoryScalar},
@@ -21,7 +21,7 @@ use proof_of_sql::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::VerifyError;
+use crate::{serde::QueryDataDef, VerifyError};
 
 /// Represents the public input for a Dory proof.
 ///

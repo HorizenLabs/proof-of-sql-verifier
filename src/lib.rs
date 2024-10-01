@@ -13,12 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![no_std]
+extern crate alloc;
+
 mod errors;
 mod proof;
 mod pubs;
+mod serde;
 mod verification_key;
 mod verify_generic;
-mod serde;
 
 pub mod dory;
 pub use dory::*;

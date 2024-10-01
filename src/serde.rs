@@ -1,3 +1,4 @@
+use alloc::{string::String, vec::Vec};
 use proof_of_sql::{
     base::{
         database::{OwnedColumn, OwnedTable},
@@ -41,13 +42,12 @@ impl From<OwnedTableDef> for OwnedTable<DoryScalar> {
 
 mod index_map_serde {
     use super::*;
-    use core::fmt;
+    use core::{fmt, marker::PhantomData};
     use serde::{
         de::{MapAccess, Visitor},
         ser::SerializeMap,
         Deserializer, Serializer,
     };
-    use std::marker::PhantomData;
 
     #[derive(Serialize, Deserialize)]
     struct OwnedColumnWrap(#[serde(with = "OwnedColumnDef")] OwnedColumn<DoryScalar>);

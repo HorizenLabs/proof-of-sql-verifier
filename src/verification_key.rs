@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use alloc::vec::Vec;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use proof_of_sql::proof_primitive::dory::{
     DoryVerifierPublicSetup, PublicParameters, VerifierSetup,
