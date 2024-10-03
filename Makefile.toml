@@ -18,6 +18,13 @@ dependencies = ["clean"]
 command = "cargo"
 args = ["test"]
 
+[tasks.run-bins]
+dependencies = ["run-generate-sample-proof"]
+
+[tasks.run-generate-sample-proof]
+command = "cargo"
+args = ["run", "--bin", "generate-sample-proof", "--features", "rand test"]
+
 [tasks.format_inst]
 [tasks.format-inst]
 install_crate = { crate_name = "rustfmt", rustup_component_name = "rustfmt", binary = "rustfmt", test_arg = "--help" }
@@ -73,7 +80,22 @@ args = ["udeps", "--all-targets"]
 
 
 [tasks.ci]
-dependencies = ["build", "test", "format", "header-add", "clippy", "audit"]
+dependencies = [
+    "build",
+    "test",
+    "format",
+    "header-add",
+    "clippy",
+    "audit"
+]
 
 [tasks.ci-remote]
-dependencies = ["build", "test", "format-check", "header-check", "clippy", "audit"]
+dependencies = [
+    "build",
+    "test",
+    "run-bins",
+    "format-check",
+    "header-check",
+    "clippy",
+    "audit"
+]
