@@ -117,11 +117,11 @@ fn build_query_non_existant_record<T: Commitment>(accessor: &impl SchemaAccessor
 mod dory {
     use super::*;
 
-    use proof_of_sql::proof_primitive::dory::{
-        test_rng, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
-    };
-
+    use ark_std::test_rng;
     use proof_of_sql::base::commitment::QueryCommitments;
+    use proof_of_sql::proof_primitive::dory::{
+        DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
+    };
     use proof_of_sql_verifier::{DoryProof, DoryPublicInput, VerificationKey};
 
     mod generate_and_verify_proof {
@@ -131,7 +131,7 @@ mod dory {
         #[test]
         fn base() {
             // Initialize setup
-            let public_parameters = PublicParameters::rand(4, &mut test_rng());
+            let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
             let ps = ProverSetup::from(&public_parameters);
             let prover_setup = DoryProverPublicSetup::new(&ps, 4);
 
@@ -165,7 +165,7 @@ mod dory {
         #[test]
         fn for_non_existant_record() {
             // Initialize setup
-            let public_parameters = PublicParameters::rand(4, &mut test_rng());
+            let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
             let ps = ProverSetup::from(&public_parameters);
             let prover_setup = DoryProverPublicSetup::new(&ps, 4);
 
@@ -201,7 +201,7 @@ mod dory {
         #[test]
         fn without_commitments() {
             // Initialize setup
-            let public_parameters = PublicParameters::rand(4, &mut test_rng());
+            let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
             let ps = ProverSetup::from(&public_parameters);
             let prover_setup = DoryProverPublicSetup::new(&ps, 4);
 
@@ -234,7 +234,7 @@ mod dory {
         #[test]
         fn for_altered_data() {
             // Initialize setup
-            let public_parameters = PublicParameters::rand(4, &mut test_rng());
+            let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
             let ps = ProverSetup::from(&public_parameters);
             let prover_setup = DoryProverPublicSetup::new(&ps, 4);
 
@@ -273,7 +273,7 @@ mod dory {
         #[test]
         fn from_alien_accessor() {
             // Initialize setup
-            let public_parameters = PublicParameters::rand(4, &mut test_rng());
+            let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
             let ps = ProverSetup::from(&public_parameters);
             let prover_setup = DoryProverPublicSetup::new(&ps, 4);
 

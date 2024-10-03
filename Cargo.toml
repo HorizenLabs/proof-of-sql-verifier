@@ -9,15 +9,19 @@ ark-bls12-381 = { version = "0.4.0", default-features = false }
 ark-ec = { version = "0.4.0", default-features = false }
 ark-serialize = { version = "0.4.0", default-features = false }
 indexmap = { version = "2.1", default-features = false }
-proof-of-sql = { version = "0.25.3", default-features = false }
-proof-of-sql-parser = { version = "0.25.3", default-features = false }
+proof-of-sql = { version = "0.27.0", default-features = false }
+proof-of-sql-parser = { version = "0.27.0", default-features = false }
 serde = { version = "1.0", default-features = false }
 serde_cbor = { version = "0.10", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
-proof-of-sql = { version = "0.25.3", default-features = false, features = ["test"] }
+ark-std = { version = "0.4.0" }
+proof-of-sql = { version = "0.27.0", default-features = false, features = ["test"] }
 rstest = { version = "0.22.0" }
 
-[patch.crates-io]
-lalrpop = { git = "https://github.com/lalrpop/lalrpop", rev = "173597c" }
-lalrpop-util = { git = "https://github.com/lalrpop/lalrpop", rev = "173597c" }
+[features]
+std = [
+    "serde/std",
+    "serde_cbor/std",
+    "proof-of-sql/std",
+]

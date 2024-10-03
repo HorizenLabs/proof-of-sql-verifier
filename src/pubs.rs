@@ -100,6 +100,7 @@ impl DoryPublicInput {
 #[cfg(test)]
 mod test {
 
+    use ark_std::test_rng;
     use proof_of_sql::{
         base::{
             commitment::{Commitment, CommitmentEvaluationProof, QueryCommitmentsExt},
@@ -109,7 +110,7 @@ mod test {
             },
         },
         proof_primitive::dory::{
-            test_rng, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
+            DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
         },
         sql::{
             parse::QueryExpr,
@@ -159,7 +160,7 @@ mod test {
     #[test]
     fn test_dory_public_input() {
         // Initialize setup
-        let public_parameters = PublicParameters::rand(6, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(6, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
         let prover_setup = DoryProverPublicSetup::new(&ps, 4);
         let vk = VerificationKey::new(&public_parameters, 4);
