@@ -11,6 +11,7 @@ ark-serialize = { version = "0.4.0", default-features = false }
 indexmap = { version = "2.1", default-features = false }
 proof-of-sql = { version = "0.27.0", default-features = false }
 proof-of-sql-parser = { version = "0.27.0", default-features = false }
+rand = { version = "0.8.0", optional = true }
 serde = { version = "1.0", default-features = false }
 serde_cbor = { version = "0.10", default-features = false, features = ["alloc"] }
 
@@ -25,3 +26,12 @@ std = [
     "serde_cbor/std",
     "proof-of-sql/std",
 ]
+test = [
+    "std",
+    "proof-of-sql/test"
+]
+rand = ["dep:rand"]
+
+[[bin]]
+name = "generate-sample-proof"
+required-features = ["rand", "test"]
