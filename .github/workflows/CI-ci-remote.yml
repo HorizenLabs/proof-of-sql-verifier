@@ -24,6 +24,11 @@ jobs:
         with:
           command: install
           args: --debug cargo-make
+      - name: Install bare-metal target
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: thumbv7em-none-eabi
       - name: Run CI full (stable)
         uses: actions-rs/cargo@v1
         with:

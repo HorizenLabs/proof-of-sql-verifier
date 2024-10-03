@@ -13,6 +13,11 @@ dependencies = ["clean"]
 command = "cargo"
 args = ["build"]
 
+[tasks.build-bare-metal]
+dependencies = ["clean"]
+command = "cargo"
+args = ["build", "--target", "thumbv7em-none-eabi"]
+
 [tasks.test]
 dependencies = ["clean"]
 command = "cargo"
@@ -92,6 +97,7 @@ dependencies = [
 [tasks.ci-remote]
 dependencies = [
     "build",
+    "build-bare-metal",
     "test",
     "run-bins",
     "format-check",
