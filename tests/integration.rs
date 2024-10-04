@@ -13,17 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use proof_of_sql::base::{commitment::QueryCommitments, database::CommitmentAccessor};
-pub use proof_of_sql::{
+use proof_of_sql::{
+    base::commitment::QueryCommitments,
     base::{
         commitment::{Commitment, CommitmentEvaluationProof, QueryCommitmentsExt},
+        database::CommitmentAccessor,
         database::{owned_table_utility::*, OwnedTableTestAccessor, SchemaAccessor, TestAccessor},
+    },
+    proof_primitive::dory::{
+        test_rng, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
     },
     sql::{
         parse::QueryExpr,
         proof::{ProofPlan, VerifiableQueryResult},
     },
 };
+
+use proof_of_sql_verifier::{DoryProof, DoryPublicInput, VerificationKey};
 
 // Helper functions for setting up test data and queries
 
@@ -114,196 +120,184 @@ fn build_query_non_existant_record<T: Commitment>(accessor: &impl SchemaAccessor
     .unwrap()
 }
 
-mod dory {
+mod generate_and_verify_proof {
     use super::*;
 
-    use proof_of_sql::proof_primitive::dory::{
-        test_rng, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
-    };
+    /// Tests the generation and verification of a Dory proof.
+    #[test]
+    fn base() {
+        // Initialize setup
+        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let ps = ProverSetup::from(&public_parameters);
+        let prover_setup = DoryProverPublicSetup::new(&ps, 4);
 
-    use proof_of_sql::base::commitment::QueryCommitments;
-    use proof_of_sql_verifier::{DoryProof, DoryPublicInput, VerificationKey};
+        // Build table accessor and query
+        let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
+        let query = build_query(&accessor);
 
-    mod generate_and_verify_proof {
-        use super::*;
+        // Generate proof
+        let proof = VerifiableQueryResult::<DoryEvaluationProof>::new(
+            query.proof_expr(),
+            &accessor,
+            &prover_setup,
+        );
 
-        /// Tests the generation and verification of a Dory proof.
-        #[test]
-        fn base() {
-            // Initialize setup
-            let public_parameters = PublicParameters::rand(4, &mut test_rng());
-            let ps = ProverSetup::from(&public_parameters);
-            let prover_setup = DoryProverPublicSetup::new(&ps, 4);
+        // Get query data and commitments
+        let vk = VerificationKey::new(&public_parameters, 4);
+        let query_data = proof
+            .verify(query.proof_expr(), &accessor, &vk.into_dory())
+            .unwrap();
+        let query_commitments = compute_query_commitments(&query, &accessor);
 
-            // Build table accessor and query
-            let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
-            let query = build_query(&accessor);
+        // Verify proof
+        let proof = DoryProof::new(proof);
+        let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data);
+        let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
-            // Generate proof
-            let proof = VerifiableQueryResult::<DoryEvaluationProof>::new(
-                query.proof_expr(),
-                &accessor,
-                &prover_setup,
-            );
+        assert!(result.is_ok());
+    }
 
-            // Get query data and commitments
-            let vk = VerificationKey::new(&public_parameters, 4);
-            let query_data = proof
-                .verify(query.proof_expr(), &accessor, &vk.into_dory())
-                .unwrap();
-            let query_commitments = compute_query_commitments(&query, &accessor);
+    /// Tests the generation and verification of a Dory proof for a non-existent record.
+    #[test]
+    fn for_non_existant_record() {
+        // Initialize setup
+        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let ps = ProverSetup::from(&public_parameters);
+        let prover_setup = DoryProverPublicSetup::new(&ps, 4);
 
-            // Verify proof
-            let proof = DoryProof::new(proof);
-            let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data);
-            let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
+        // Build table accessor and query
+        let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
+        let non_existant_query = build_query_non_existant_record(&accessor);
 
-            assert!(result.is_ok());
-        }
+        let proof = VerifiableQueryResult::<DoryEvaluationProof>::new(
+            non_existant_query.proof_expr(),
+            &accessor,
+            &prover_setup,
+        );
 
-        /// Tests the generation and verification of a Dory proof for a non-existent record.
-        #[test]
-        fn for_non_existant_record() {
-            // Initialize setup
-            let public_parameters = PublicParameters::rand(4, &mut test_rng());
-            let ps = ProverSetup::from(&public_parameters);
-            let prover_setup = DoryProverPublicSetup::new(&ps, 4);
+        let vk = VerificationKey::new(&public_parameters, 4);
 
-            // Build table accessor and query
-            let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
-            let non_existant_query = build_query_non_existant_record(&accessor);
+        let query_data = proof
+            .verify(non_existant_query.proof_expr(), &accessor, &vk.into_dory())
+            .unwrap();
+        let query_commitments = compute_query_commitments(&non_existant_query, &accessor);
 
-            let proof = VerifiableQueryResult::<DoryEvaluationProof>::new(
-                non_existant_query.proof_expr(),
-                &accessor,
-                &prover_setup,
-            );
+        let dory_proof = DoryProof::new(proof);
+        let pubs = DoryPublicInput::new(
+            non_existant_query.proof_expr(),
+            query_commitments,
+            query_data,
+        );
+        let result = proof_of_sql_verifier::verify_dory_proof(&dory_proof, &pubs, &vk);
 
-            let vk = VerificationKey::new(&public_parameters, 4);
+        assert!(result.is_ok());
+    }
 
-            let query_data = proof
-                .verify(non_existant_query.proof_expr(), &accessor, &vk.into_dory())
-                .unwrap();
-            let query_commitments = compute_query_commitments(&non_existant_query, &accessor);
+    /// Tests that verification fails when commitments are missing.
+    #[test]
+    fn without_commitments() {
+        // Initialize setup
+        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let ps = ProverSetup::from(&public_parameters);
+        let prover_setup = DoryProverPublicSetup::new(&ps, 4);
 
-            let dory_proof = DoryProof::new(proof);
-            let pubs = DoryPublicInput::new(
-                non_existant_query.proof_expr(),
-                query_commitments,
-                query_data,
-            );
-            let result = proof_of_sql_verifier::verify_dory_proof(&dory_proof, &pubs, &vk);
+        // Build table accessor and query
+        let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
+        let query = build_query(&accessor);
 
-            assert!(result.is_ok());
-        }
+        // Generate proof
+        let proof = VerifiableQueryResult::<DoryEvaluationProof>::new(
+            query.proof_expr(),
+            &accessor,
+            &prover_setup,
+        );
 
-        /// Tests that verification fails when commitments are missing.
-        #[test]
-        fn without_commitments() {
-            // Initialize setup
-            let public_parameters = PublicParameters::rand(4, &mut test_rng());
-            let ps = ProverSetup::from(&public_parameters);
-            let prover_setup = DoryProverPublicSetup::new(&ps, 4);
+        // Get query data and commitments
+        let vk = VerificationKey::new(&public_parameters, 4);
+        let query_data = proof
+            .verify(query.proof_expr(), &accessor, &vk.into_dory())
+            .unwrap();
+        let no_commitments = QueryCommitments::new();
 
-            // Build table accessor and query
-            let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
-            let query = build_query(&accessor);
+        let proof = DoryProof::new(proof);
+        let pubs = DoryPublicInput::new(query.proof_expr(), no_commitments, query_data);
+        let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
-            // Generate proof
-            let proof = VerifiableQueryResult::<DoryEvaluationProof>::new(
-                query.proof_expr(),
-                &accessor,
-                &prover_setup,
-            );
+        assert!(result.is_err());
+    }
 
-            // Get query data and commitments
-            let vk = VerificationKey::new(&public_parameters, 4);
-            let query_data = proof
-                .verify(query.proof_expr(), &accessor, &vk.into_dory())
-                .unwrap();
-            let no_commitments = QueryCommitments::new();
+    /// Tests that verification fails when the underlying data has been altered.
+    #[test]
+    fn for_altered_data() {
+        // Initialize setup
+        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let ps = ProverSetup::from(&public_parameters);
+        let prover_setup = DoryProverPublicSetup::new(&ps, 4);
 
-            let proof = DoryProof::new(proof);
-            let pubs = DoryPublicInput::new(query.proof_expr(), no_commitments, query_data);
-            let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
+        // Build table accessor and query
+        let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
+        let query = build_query(&accessor);
 
-            assert!(result.is_err());
-        }
+        // Generate proof
+        let proof = VerifiableQueryResult::<DoryEvaluationProof>::new(
+            query.proof_expr(),
+            &accessor,
+            &prover_setup,
+        );
 
-        /// Tests that verification fails when the underlying data has been altered.
-        #[test]
-        fn for_altered_data() {
-            // Initialize setup
-            let public_parameters = PublicParameters::rand(4, &mut test_rng());
-            let ps = ProverSetup::from(&public_parameters);
-            let prover_setup = DoryProverPublicSetup::new(&ps, 4);
+        // Get query data and commitments
+        let vk = VerificationKey::new(&public_parameters, 4);
+        let query_data = proof
+            .verify(query.proof_expr(), &accessor, &vk.into_dory())
+            .unwrap();
 
-            // Build table accessor and query
-            let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
-            let query = build_query(&accessor);
+        // Alter the data
+        let altered_accessor: OwnedTableTestAccessor<DoryEvaluationProof> =
+            build_altered_accessor(prover_setup);
+        let altered_query_commitments = compute_query_commitments(&query, &altered_accessor);
 
-            // Generate proof
-            let proof = VerifiableQueryResult::<DoryEvaluationProof>::new(
-                query.proof_expr(),
-                &accessor,
-                &prover_setup,
-            );
+        // Verify proof
+        let proof = DoryProof::new(proof);
+        let pubs = DoryPublicInput::new(query.proof_expr(), altered_query_commitments, query_data);
+        let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
-            // Get query data and commitments
-            let vk = VerificationKey::new(&public_parameters, 4);
-            let query_data = proof
-                .verify(query.proof_expr(), &accessor, &vk.into_dory())
-                .unwrap();
+        assert!(result.is_err());
+    }
 
-            // Alter the data
-            let altered_accessor: OwnedTableTestAccessor<DoryEvaluationProof> =
-                build_altered_accessor(prover_setup);
-            let altered_query_commitments = compute_query_commitments(&query, &altered_accessor);
+    /// Tests that verification fails when using commitments from a different accessor.
+    #[test]
+    fn from_alien_accessor() {
+        // Initialize setup
+        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let ps = ProverSetup::from(&public_parameters);
+        let prover_setup = DoryProverPublicSetup::new(&ps, 4);
 
-            // Verify proof
-            let proof = DoryProof::new(proof);
-            let pubs =
-                DoryPublicInput::new(query.proof_expr(), altered_query_commitments, query_data);
-            let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
+        // Build table accessors and queries
+        let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
+        let alien_accessor = build_alien_accessor::<DoryEvaluationProof>(prover_setup);
+        let query = build_query(&accessor);
+        let alient_query = build_alien_query(&alien_accessor);
 
-            assert!(result.is_err());
-        }
+        // Generate proof for original accessor and query
+        let proof = VerifiableQueryResult::<DoryEvaluationProof>::new(
+            query.proof_expr(),
+            &accessor,
+            &prover_setup,
+        );
 
-        /// Tests that verification fails when using commitments from a different accessor.
-        #[test]
-        fn from_alien_accessor() {
-            // Initialize setup
-            let public_parameters = PublicParameters::rand(4, &mut test_rng());
-            let ps = ProverSetup::from(&public_parameters);
-            let prover_setup = DoryProverPublicSetup::new(&ps, 4);
+        // Get the result
+        let vk = VerificationKey::new(&public_parameters, 4);
+        let query_data = proof
+            .verify(query.proof_expr(), &accessor, &vk.into_dory())
+            .unwrap();
 
-            // Build table accessors and queries
-            let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
-            let alien_accessor = build_alien_accessor::<DoryEvaluationProof>(prover_setup);
-            let query = build_query(&accessor);
-            let alient_query = build_alien_query(&alien_accessor);
+        // Compute query commitments for alien accessor
+        let query_commitments = compute_query_commitments(&alient_query, &alien_accessor);
 
-            // Generate proof for original accessor and query
-            let proof = VerifiableQueryResult::<DoryEvaluationProof>::new(
-                query.proof_expr(),
-                &accessor,
-                &prover_setup,
-            );
+        let proof = DoryProof::new(proof);
+        let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data);
+        let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
-            // Get the result
-            let vk = VerificationKey::new(&public_parameters, 4);
-            let query_data = proof
-                .verify(query.proof_expr(), &accessor, &vk.into_dory())
-                .unwrap();
-
-            // Compute query commitments for alien accessor
-            let query_commitments = compute_query_commitments(&alient_query, &alien_accessor);
-
-            let proof = DoryProof::new(proof);
-            let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data);
-            let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
-
-            assert!(result.is_err());
-        }
+        assert!(result.is_err());
     }
 }
