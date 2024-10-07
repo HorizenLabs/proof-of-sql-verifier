@@ -40,8 +40,8 @@ use crate::{Proof, PublicInput, VerificationKey, VerifyError};
 /// # Returns
 ///
 /// * `Result<(), VerifyError>` - Ok(()) if the proof is valid, or an error if verification fails.
-pub fn verify_proof_internal<CP: CommitmentEvaluationProof>(
-    proof: VerifiableQueryResult<CP>,
+fn verify_proof_internal<CP: CommitmentEvaluationProof>(
+    proof: &VerifiableQueryResult<CP>,
     expr: &DynProofPlan<CP::Commitment>,
     commitments: &QueryCommitments<CP::Commitment>,
     query_data: &QueryData<CP::Scalar>,
@@ -96,10 +96,10 @@ pub fn verify_proof(
     vk: &VerificationKey,
 ) -> Result<(), VerifyError> {
     verify_proof_internal(
-        proof.clone().into_dory(),
+        proof.inner(),
         pubs.expr(),
         pubs.commitments(),
         pubs.query_data(),
-        &vk.into_dory(),
+        &vk.to_dory(),
     )
 }

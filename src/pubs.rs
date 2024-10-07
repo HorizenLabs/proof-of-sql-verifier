@@ -45,7 +45,7 @@ impl TryFrom<&[u8]> for PublicInput {
     type Error = VerifyError;
 
     fn try_from(bytes: &[u8]) -> Result<Self, VerifyError> {
-        PublicInput::from_bytes(bytes).map_err(|_| VerifyError::InvalidInput)
+        PublicInput::try_from_bytes(bytes).map_err(|_| VerifyError::InvalidInput)
     }
 }
 
@@ -92,7 +92,7 @@ impl PublicInput {
     }
 
     /// Converts the public input into a byte array.
-    pub fn into_bytes(&self) -> Result<Vec<u8>, VerifyError> {
+    pub fn try_to_bytes(&self) -> Result<Vec<u8>, VerifyError> {
         let mut expr_bytes = Vec::new();
 
         // Serialize the expression
@@ -155,7 +155,7 @@ impl PublicInput {
     }
 
     /// Converts a byte array into a `DoryPublicInput` instance.
-    fn from_bytes(bytes: &[u8]) -> Result<Self, bincode::Error> {
+    fn try_from_bytes(bytes: &[u8]) -> Result<Self, bincode::Error> {
         let mut cursor = std::io::Cursor::new(bytes);
 
         // Deserialize the expression
@@ -295,7 +295,7 @@ mod test {
     }
 
     #[test]
-    fn test_dory_public_input() {
+    fn dory_public_input() {
         // Initialize setup
         let public_parameters = PublicParameters::rand(6, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
@@ -315,14 +315,14 @@ mod test {
 
         // Get query data and commitments
         let query_data = proof
-            .verify(query.proof_expr(), &accessor, &vk.into_dory())
+            .verify(query.proof_expr(), &accessor, &vk.to_dory())
             .unwrap();
         let query_commitments = compute_query_commitments(&query, &accessor);
 
         // Verify proof
         let pubs = PublicInput::new(query.proof_expr(), query_commitments, query_data);
 
-        let bytes = pubs.into_bytes().unwrap();
+        let bytes = pubs.try_to_bytes().unwrap();
 
         let pubs = PublicInput::try_from(&bytes[..]).unwrap();
         let proof = Proof::new(proof);

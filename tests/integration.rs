@@ -121,15 +121,21 @@ fn build_query_non_existant_record<T: Commitment>(accessor: &impl SchemaAccessor
 }
 
 mod generate_and_verify_proof {
+    use proof_of_sql::proof_primitive::dory::{DoryVerifierPublicSetup, VerifierSetup};
+
     use super::*;
 
     /// Tests the generation and verification of a Dory proof.
     #[test]
     fn base() {
         // Initialize setup
-        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let max_nu = 4;
+        let sigma = max_nu;
+        let public_parameters = PublicParameters::rand(max_nu, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
-        let prover_setup = DoryProverPublicSetup::new(&ps, 4);
+        let vs = VerifierSetup::from(&public_parameters);
+        let prover_setup = DoryProverPublicSetup::new(&ps, sigma);
+        let verifier_setup = DoryVerifierPublicSetup::new(&vs, sigma);
 
         // Build table accessor and query
         let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
@@ -143,15 +149,15 @@ mod generate_and_verify_proof {
         );
 
         // Get query data and commitments
-        let vk = VerificationKey::new(&public_parameters, 4);
         let query_data = proof
-            .verify(query.proof_expr(), &accessor, &vk.into_dory())
+            .verify(query.proof_expr(), &accessor, &verifier_setup)
             .unwrap();
-        let query_commitments = compute_query_commitments(&query, &accessor);
 
         // Verify proof
+        let query_commitments = compute_query_commitments(&query, &accessor);
         let proof = Proof::new(proof);
         let pubs = PublicInput::new(query.proof_expr(), query_commitments, query_data);
+        let vk = VerificationKey::new(&public_parameters, sigma);
         let result = proof_of_sql_verifier::verify_proof(&proof, &pubs, &vk);
 
         assert!(result.is_ok());
@@ -161,9 +167,13 @@ mod generate_and_verify_proof {
     #[test]
     fn for_non_existant_record() {
         // Initialize setup
-        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let max_nu = 4;
+        let sigma = max_nu;
+        let public_parameters = PublicParameters::rand(max_nu, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
-        let prover_setup = DoryProverPublicSetup::new(&ps, 4);
+        let vs = VerifierSetup::from(&public_parameters);
+        let prover_setup = DoryProverPublicSetup::new(&ps, sigma);
+        let verifier_setup = DoryVerifierPublicSetup::new(&vs, sigma);
 
         // Build table accessor and query
         let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
@@ -175,19 +185,19 @@ mod generate_and_verify_proof {
             &prover_setup,
         );
 
-        let vk = VerificationKey::new(&public_parameters, 4);
-
+        // Get query data
         let query_data = proof
-            .verify(non_existant_query.proof_expr(), &accessor, &vk.into_dory())
+            .verify(non_existant_query.proof_expr(), &accessor, &verifier_setup)
             .unwrap();
-        let query_commitments = compute_query_commitments(&non_existant_query, &accessor);
 
+        let query_commitments = compute_query_commitments(&non_existant_query, &accessor);
         let dory_proof = Proof::new(proof);
         let pubs = PublicInput::new(
             non_existant_query.proof_expr(),
             query_commitments,
             query_data,
         );
+        let vk = VerificationKey::new(&public_parameters, sigma);
         let result = proof_of_sql_verifier::verify_proof(&dory_proof, &pubs, &vk);
 
         assert!(result.is_ok());
@@ -197,9 +207,13 @@ mod generate_and_verify_proof {
     #[test]
     fn without_commitments() {
         // Initialize setup
-        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let max_nu = 4;
+        let sigma = max_nu;
+        let public_parameters = PublicParameters::rand(max_nu, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
-        let prover_setup = DoryProverPublicSetup::new(&ps, 4);
+        let vs = VerifierSetup::from(&public_parameters);
+        let prover_setup = DoryProverPublicSetup::new(&ps, sigma);
+        let verifier_setup = DoryVerifierPublicSetup::new(&vs, sigma);
 
         // Build table accessor and query
         let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
@@ -212,15 +226,15 @@ mod generate_and_verify_proof {
             &prover_setup,
         );
 
-        // Get query data and commitments
-        let vk = VerificationKey::new(&public_parameters, 4);
+        // Get query data
         let query_data = proof
-            .verify(query.proof_expr(), &accessor, &vk.into_dory())
+            .verify(query.proof_expr(), &accessor, &verifier_setup)
             .unwrap();
-        let no_commitments = QueryCommitments::new();
 
+        let no_commitments = QueryCommitments::new();
         let proof = Proof::new(proof);
         let pubs = PublicInput::new(query.proof_expr(), no_commitments, query_data);
+        let vk = VerificationKey::new(&public_parameters, 4);
         let result = proof_of_sql_verifier::verify_proof(&proof, &pubs, &vk);
 
         assert!(result.is_err());
@@ -230,9 +244,13 @@ mod generate_and_verify_proof {
     #[test]
     fn for_altered_data() {
         // Initialize setup
-        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let max_nu = 4;
+        let sigma = max_nu;
+        let public_parameters = PublicParameters::rand(max_nu, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
-        let prover_setup = DoryProverPublicSetup::new(&ps, 4);
+        let vs = VerifierSetup::from(&public_parameters);
+        let prover_setup = DoryProverPublicSetup::new(&ps, sigma);
+        let verifier_setup = DoryVerifierPublicSetup::new(&vs, sigma);
 
         // Build table accessor and query
         let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
@@ -246,19 +264,19 @@ mod generate_and_verify_proof {
         );
 
         // Get query data and commitments
-        let vk = VerificationKey::new(&public_parameters, 4);
         let query_data = proof
-            .verify(query.proof_expr(), &accessor, &vk.into_dory())
+            .verify(query.proof_expr(), &accessor, &verifier_setup)
             .unwrap();
 
         // Alter the data
         let altered_accessor: OwnedTableTestAccessor<DoryEvaluationProof> =
             build_altered_accessor(prover_setup);
-        let altered_query_commitments = compute_query_commitments(&query, &altered_accessor);
 
         // Verify proof
+        let altered_query_commitments = compute_query_commitments(&query, &altered_accessor);
         let proof = Proof::new(proof);
         let pubs = PublicInput::new(query.proof_expr(), altered_query_commitments, query_data);
+        let vk = VerificationKey::new(&public_parameters, sigma);
         let result = proof_of_sql_verifier::verify_proof(&proof, &pubs, &vk);
 
         assert!(result.is_err());
@@ -268,15 +286,19 @@ mod generate_and_verify_proof {
     #[test]
     fn from_alien_accessor() {
         // Initialize setup
-        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let max_nu = 4;
+        let sigma = max_nu;
+        let public_parameters = PublicParameters::rand(max_nu, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
-        let prover_setup = DoryProverPublicSetup::new(&ps, 4);
+        let vs = VerifierSetup::from(&public_parameters);
+        let prover_setup = DoryProverPublicSetup::new(&ps, sigma);
+        let verifier_setup = DoryVerifierPublicSetup::new(&vs, sigma);
 
         // Build table accessors and queries
         let accessor = build_accessor::<DoryEvaluationProof>(prover_setup);
         let alien_accessor = build_alien_accessor::<DoryEvaluationProof>(prover_setup);
         let query = build_query(&accessor);
-        let alient_query = build_alien_query(&alien_accessor);
+        let alien_query = build_alien_query(&alien_accessor);
 
         // Generate proof for original accessor and query
         let proof = VerifiableQueryResult::<DoryEvaluationProof>::new(
@@ -286,16 +308,15 @@ mod generate_and_verify_proof {
         );
 
         // Get the result
-        let vk = VerificationKey::new(&public_parameters, 4);
         let query_data = proof
-            .verify(query.proof_expr(), &accessor, &vk.into_dory())
+            .verify(query.proof_expr(), &accessor, &verifier_setup)
             .unwrap();
 
         // Compute query commitments for alien accessor
-        let query_commitments = compute_query_commitments(&alient_query, &alien_accessor);
-
+        let query_commitments = compute_query_commitments(&alien_query, &alien_accessor);
         let proof = Proof::new(proof);
         let pubs = PublicInput::new(query.proof_expr(), query_commitments, query_data);
+        let vk = VerificationKey::new(&public_parameters, sigma);
         let result = proof_of_sql_verifier::verify_proof(&proof, &pubs, &vk);
 
         assert!(result.is_err());

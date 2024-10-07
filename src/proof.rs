@@ -69,7 +69,7 @@ impl Proof {
     /// # Returns
     ///
     /// * `Vec<u8>` - The serialized proof as a byte vector.
-    pub fn into_bytes(self) -> Vec<u8> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         bincode::serialize(&self.proof).unwrap()
     }
 
@@ -78,7 +78,7 @@ impl Proof {
     /// # Returns
     ///
     /// * `VerifiableQueryResult<DoryEvaluationProof>` - The proof data.
-    pub fn into_dory(self) -> VerifiableQueryResult<DoryEvaluationProof> {
-        self.proof
+    pub fn inner(&self) -> &VerifiableQueryResult<DoryEvaluationProof> {
+        &self.proof
     }
 }
