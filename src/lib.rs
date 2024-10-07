@@ -17,13 +17,10 @@ mod errors;
 mod proof;
 mod pubs;
 mod verification_key;
-mod verify_generic;
-
-pub mod dory;
-pub use dory::*;
+mod verify;
 
 pub use errors::*;
 pub use proof::*;
 pub use pubs::*;
 pub use verification_key::*;
-pub use verify_generic::*;
+pub use verify::*;

@@ -35,21 +35,21 @@ use crate::VerifyError;
 /// This structure encapsulates the necessary public information required
 /// for verifying a Dory proof, including the proof expression, commitments,
 /// and query data.
-pub struct DoryPublicInput {
+pub struct PublicInput {
     expr: DynProofPlan<DoryCommitment>,
     commitments: QueryCommitments<DoryCommitment>,
     query_data: QueryData<DoryScalar>,
 }
 
-impl TryFrom<&[u8]> for DoryPublicInput {
+impl TryFrom<&[u8]> for PublicInput {
     type Error = VerifyError;
 
     fn try_from(bytes: &[u8]) -> Result<Self, VerifyError> {
-        DoryPublicInput::from_bytes(bytes).map_err(|_| VerifyError::InvalidInput)
+        PublicInput::from_bytes(bytes).map_err(|_| VerifyError::InvalidInput)
     }
 }
 
-impl DoryPublicInput {
+impl PublicInput {
     /// Creates a new `DoryPublicInput` instance.
     ///
     /// # Arguments
@@ -227,7 +227,7 @@ impl DoryPublicInput {
             verification_hash,
         };
 
-        Ok(DoryPublicInput {
+        Ok(PublicInput {
             expr,
             commitments,
             query_data,
@@ -255,7 +255,7 @@ mod test {
         },
     };
 
-    use crate::{DoryProof, VerificationKey};
+    use crate::{Proof, VerificationKey};
 
     use super::*;
 
@@ -320,13 +320,13 @@ mod test {
         let query_commitments = compute_query_commitments(&query, &accessor);
 
         // Verify proof
-        let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data);
+        let pubs = PublicInput::new(query.proof_expr(), query_commitments, query_data);
 
         let bytes = pubs.into_bytes().unwrap();
 
-        let pubs = DoryPublicInput::try_from(&bytes[..]).unwrap();
-        let proof = DoryProof::new(proof);
-        let result = crate::verify_dory_proof(&proof, &pubs, &vk);
+        let pubs = PublicInput::try_from(&bytes[..]).unwrap();
+        let proof = Proof::new(proof);
+        let result = crate::verify_proof(&proof, &pubs, &vk);
 
         assert!(result.is_ok());
     }

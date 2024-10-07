@@ -27,11 +27,11 @@ use crate::VerifyError;
 ///
 /// * `proof` - A `VerifiableQueryResult<DoryEvaluationProof>` containing the actual proof data.
 #[derive(Clone)]
-pub struct DoryProof {
+pub struct Proof {
     proof: VerifiableQueryResult<DoryEvaluationProof>,
 }
 
-impl TryFrom<&[u8]> for DoryProof {
+impl TryFrom<&[u8]> for Proof {
     type Error = VerifyError;
 
     /// Attempts to create a DoryProof from a byte slice.
@@ -50,7 +50,7 @@ impl TryFrom<&[u8]> for DoryProof {
     }
 }
 
-impl DoryProof {
+impl Proof {
     /// Creates a new DoryProof.
     ///
     /// # Arguments
