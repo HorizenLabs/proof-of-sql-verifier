@@ -155,7 +155,8 @@ mod dory {
 
             // Verify proof
             let proof = DoryProof::new(proof);
-            let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data);
+            let pubs =
+                DoryPublicInput::new(query.proof_expr(), query_commitments, query_data.into());
             let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
             assert!(result.is_ok());
@@ -190,7 +191,7 @@ mod dory {
             let pubs = DoryPublicInput::new(
                 non_existant_query.proof_expr(),
                 query_commitments,
-                query_data,
+                query_data.into(),
             );
             let result = proof_of_sql_verifier::verify_dory_proof(&dory_proof, &pubs, &vk);
 
@@ -224,7 +225,7 @@ mod dory {
             let no_commitments = QueryCommitments::default();
 
             let proof = DoryProof::new(proof);
-            let pubs = DoryPublicInput::new(query.proof_expr(), no_commitments, query_data);
+            let pubs = DoryPublicInput::new(query.proof_expr(), no_commitments, query_data.into());
             let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
             assert!(result.is_err());
@@ -262,8 +263,11 @@ mod dory {
 
             // Verify proof
             let proof = DoryProof::new(proof);
-            let pubs =
-                DoryPublicInput::new(query.proof_expr(), altered_query_commitments, query_data);
+            let pubs = DoryPublicInput::new(
+                query.proof_expr(),
+                altered_query_commitments,
+                query_data.into(),
+            );
             let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
             assert!(result.is_err());
@@ -300,7 +304,8 @@ mod dory {
             let query_commitments = compute_query_commitments(&alient_query, &alien_accessor);
 
             let proof = DoryProof::new(proof);
-            let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data);
+            let pubs =
+                DoryPublicInput::new(query.proof_expr(), query_commitments, query_data.into());
             let result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
             assert!(result.is_err());

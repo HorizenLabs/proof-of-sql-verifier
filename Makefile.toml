@@ -9,19 +9,25 @@ command = "cargo"
 args = ["clean"]
 
 [tasks.build]
-dependencies = ["clean"]
 command = "cargo"
 args = ["build"]
 
+[tasks.install-bare-metal]
+command = "rustup"
+args = ["target", "add", "thumbv7em-none-eabi"]
+
 [tasks.build-bare-metal]
-dependencies = ["clean"]
+dependencies = ["install-bare-metal"]
 command = "cargo"
 args = ["build", "--target", "thumbv7em-none-eabi"]
 
 [tasks.test]
-dependencies = ["clean"]
 command = "cargo"
 args = ["test"]
+
+[tasks.test-no-std]
+command = "cargo"
+args = ["test", "--no-default-features"]
 
 [tasks.run-bins]
 dependencies = ["run-generate-sample-proof"]
@@ -60,48 +66,31 @@ args = ["HEADER-APACHE2", "./**/*.rs"]
 env = { CHECK_DIRTY = "true", DRY_RUN = "true" }
 run_task = "header-add"
 
-[tasks.audit-inst]
-command = "cargo"
-args = ["install", "cargo-audit"]
-
-[tasks.audit]
-dependencies = ["audit-inst"]
-command = "cargo"
-args = ["audit"]
-
 [tasks.cov]
 command = "cargo"
 args = ["llvm-cov", "--workspace", "--lcov", "--output-path", "lcov.info"]
 
-[tasks.udeps-inst]
-command = "cargo"
-args = ["install", "cargo-udeps", "--locked"]
-
 [tasks.udeps]
-dependencies = ["udeps-inst"]
 command = "cargo"
+toolchain = "nightly"
 args = ["udeps", "--all-targets"]
 
 
-
-[tasks.ci]
-dependencies = [
-    "build",
-    "test",
-    "format",
-    "header-add",
-    "clippy",
-    "audit"
-]
-
-[tasks.ci-remote]
+[tasks.ci-common]
 dependencies = [
     "build",
     "build-bare-metal",
     "test",
+    "test-no-std",
     "run-bins",
-    "format-check",
-    "header-check",
     "clippy",
-    "audit"
+    "audit",
+    "udeps",
 ]
+
+
+[tasks.ci]
+dependencies = ["format", "header-add", "ci-common"]
+
+[tasks.ci-remote]
+dependencies = ["format-check", "header-check", "ci-common"]

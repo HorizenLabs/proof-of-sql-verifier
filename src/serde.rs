@@ -28,116 +28,113 @@ use proof_of_sql_parser::{
 };
 use serde::{Deserialize, Serialize};
 
-pub type IndexMap = indexmap::IndexMap<
-    Identifier,
-    OwnedColumn<DoryScalar>,
-    core::hash::BuildHasherDefault<ahash::AHasher>,
->;
+pub type IndexMap =
+    indexmap::IndexMap<Identifier, OwnedColumnDef, core::hash::BuildHasherDefault<ahash::AHasher>>;
 
-#[derive(Serialize, Deserialize)]
-#[serde(remote = "QueryData<DoryScalar>")]
-pub(crate) struct QueryDataDef {
-    #[serde(with = "OwnedTableDef")]
-    table: OwnedTable<DoryScalar>,
+#[derive(Serialize, Deserialize, Clone)]
+pub struct QueryDataDef {
+    table: OwnedTableDef,
     verification_hash: [u8; 32],
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(remote = "OwnedTable<DoryScalar>")]
+impl From<QueryDataDef> for QueryData<DoryScalar> {
+    fn from(value: QueryDataDef) -> Self {
+        QueryData {
+            table: OwnedTable::from(value.table),
+            verification_hash: value.verification_hash,
+        }
+    }
+}
+
+impl From<QueryData<DoryScalar>> for QueryDataDef {
+    fn from(value: QueryData<DoryScalar>) -> Self {
+        Self {
+            table: value.table.into(),
+            verification_hash: value.verification_hash,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct OwnedTableDef {
-    #[serde(getter = "OwnedTable::inner_table", with = "index_map_serde")]
     table: IndexMap,
+}
+
+impl From<OwnedTable<DoryScalar>> for OwnedTableDef {
+    fn from(value: OwnedTable<DoryScalar>) -> Self {
+        Self {
+            table: value
+                .inner_table()
+                .iter()
+                .map(|(k, v)| (*k, OwnedColumnDef::from(v.clone())))
+                .collect(),
+        }
+    }
 }
 
 impl From<OwnedTableDef> for OwnedTable<DoryScalar> {
     fn from(value: OwnedTableDef) -> Self {
-        Self::try_new(value.table).unwrap()
+        Self::try_new(
+            value
+                .table
+                .iter()
+                .map(|(k, v)| (*k, OwnedColumn::<DoryScalar>::from(v.clone())))
+                .collect(),
+        )
+        .unwrap()
     }
 }
 
-mod index_map_serde {
-    use super::*;
-    use core::{fmt, marker::PhantomData};
-    use serde::{
-        de::{MapAccess, Visitor},
-        ser::SerializeMap,
-        Deserializer, Serializer,
-    };
+#[derive(Serialize, Deserialize)]
+struct OwnedColumnWrap(OwnedColumnDef);
 
-    #[derive(Serialize, Deserialize)]
-    struct OwnedColumnWrap(#[serde(with = "OwnedColumnDef")] OwnedColumn<DoryScalar>);
+#[derive(Serialize, Deserialize, Clone)]
+#[non_exhaustive]
+pub enum OwnedColumnDef {
+    Boolean(Vec<bool>),
+    SmallInt(Vec<i16>),
+    Int(Vec<i32>),
+    BigInt(Vec<i64>),
+    VarChar(Vec<String>),
+    Int128(Vec<i128>),
+    Decimal75(Precision, i8, Vec<DoryScalar>),
+    Scalar(Vec<DoryScalar>),
+    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
+}
 
-    #[derive(Serialize, Deserialize)]
-    #[serde(remote = "OwnedColumn<DoryScalar>")]
-    #[non_exhaustive]
-    pub enum OwnedColumnDef {
-        Boolean(Vec<bool>),
-        SmallInt(Vec<i16>),
-        Int(Vec<i32>),
-        BigInt(Vec<i64>),
-        VarChar(Vec<String>),
-        Int128(Vec<i128>),
-        Decimal75(Precision, i8, Vec<DoryScalar>),
-        Scalar(Vec<DoryScalar>),
-        TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
-    }
-
-    pub fn serialize<S>(index_map: &IndexMap, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut map = serializer.serialize_map(Some(index_map.len()))?;
-        for (k, v) in index_map {
-            map.serialize_entry(k, &OwnedColumnWrap(v.clone()))?;
-        }
-        map.end()
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<IndexMap, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_map(IndexMapVisitor::new())
-    }
-
-    struct IndexMapVisitor {
-        marker: PhantomData<fn() -> IndexMap>,
-    }
-
-    impl IndexMapVisitor {
-        fn new() -> Self {
-            IndexMapVisitor {
-                marker: PhantomData,
+impl From<OwnedColumnDef> for OwnedColumn<DoryScalar> {
+    fn from(value: OwnedColumnDef) -> Self {
+        match value {
+            OwnedColumnDef::Boolean(v) => OwnedColumn::Boolean(v),
+            OwnedColumnDef::SmallInt(v) => OwnedColumn::SmallInt(v),
+            OwnedColumnDef::Int(v) => OwnedColumn::Int(v),
+            OwnedColumnDef::BigInt(v) => OwnedColumn::BigInt(v),
+            OwnedColumnDef::VarChar(v) => OwnedColumn::VarChar(v),
+            OwnedColumnDef::Int128(v) => OwnedColumn::Int128(v),
+            OwnedColumnDef::Decimal75(precision, scale, v) => {
+                OwnedColumn::Decimal75(precision, scale, v)
             }
+            OwnedColumnDef::Scalar(v) => OwnedColumn::Scalar(v),
+            OwnedColumnDef::TimestampTZ(unit, tz, v) => OwnedColumn::TimestampTZ(unit, tz, v),
         }
     }
+}
 
-    impl<'de> Visitor<'de> for IndexMapVisitor {
-        // The type that our Visitor is going to produce.
-        type Value = IndexMap;
-
-        // Format a message stating what data this Visitor expects to receive.
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a very special map")
-        }
-
-        // Deserialize MyMap from an abstract "map" provided by the
-        // Deserializer. The MapAccess input is a callback provided by
-        // the Deserializer to let us see each entry in the map.
-        fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
-        where
-            M: MapAccess<'de>,
-        {
-            let mut map =
-                IndexMap::with_capacity_and_hasher(access.size_hint().unwrap_or(0), <_>::default());
-
-            // While there are entries remaining in the input, add them
-            // into our map.
-            while let Some((key, OwnedColumnWrap(value))) = access.next_entry()? {
-                map.insert(key, value);
+impl From<OwnedColumn<DoryScalar>> for OwnedColumnDef {
+    fn from(value: OwnedColumn<DoryScalar>) -> Self {
+        match value {
+            OwnedColumn::Boolean(v) => OwnedColumnDef::Boolean(v),
+            OwnedColumn::SmallInt(v) => OwnedColumnDef::SmallInt(v),
+            OwnedColumn::Int(v) => OwnedColumnDef::Int(v),
+            OwnedColumn::BigInt(v) => OwnedColumnDef::BigInt(v),
+            OwnedColumn::VarChar(v) => OwnedColumnDef::VarChar(v),
+            OwnedColumn::Int128(v) => OwnedColumnDef::Int128(v),
+            OwnedColumn::Decimal75(precision, scale, v) => {
+                OwnedColumnDef::Decimal75(precision, scale, v)
             }
-
-            Ok(map)
+            OwnedColumn::Scalar(v) => OwnedColumnDef::Scalar(v),
+            OwnedColumn::TimestampTZ(unit, tz, v) => OwnedColumnDef::TimestampTZ(unit, tz, v),
+            _ => unimplemented!("Missing field"),
         }
     }
 }

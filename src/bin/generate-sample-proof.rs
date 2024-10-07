@@ -76,7 +76,7 @@ fn main() {
 
     // Verify proof
     let proof = DoryProof::new(proof);
-    let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data);
+    let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data.into());
     let _result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
 
     // Write proof, pubs, and vk to binary files

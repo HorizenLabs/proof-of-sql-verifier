@@ -41,7 +41,7 @@ pub fn verify_dory_proof(
         proof.clone().into_dory(),
         pubs.expr(),
         pubs.commitments(),
-        pubs.query_data(),
+        &pubs.query_data().clone().into(),
         &vk.into_dory(),
     )
 }
@@ -59,7 +59,7 @@ pub fn verify(
         proof.clone().into_dory(),
         pubs.expr(),
         pubs.commitments(),
-        pubs.query_data(),
+        &pubs.query_data().clone().into(),
         &vk.into_dory(),
     )
 }

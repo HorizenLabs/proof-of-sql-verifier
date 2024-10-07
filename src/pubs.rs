@@ -15,9 +15,8 @@
 
 use alloc::vec::Vec;
 use proof_of_sql::{
-    base::commitment::QueryCommitments,
-    proof_primitive::dory::{DoryCommitment, DoryScalar},
-    sql::{proof::QueryData, proof_plans::DynProofPlan},
+    base::commitment::QueryCommitments, proof_primitive::dory::DoryCommitment,
+    sql::proof_plans::DynProofPlan,
 };
 use serde::{Deserialize, Serialize};
 
@@ -32,8 +31,7 @@ use crate::{serde::QueryDataDef, VerifyError};
 pub struct DoryPublicInput {
     expr: DynProofPlan<DoryCommitment>,
     commitments: QueryCommitments<DoryCommitment>,
-    #[serde(with = "QueryDataDef")]
-    query_data: QueryData<DoryScalar>,
+    query_data: QueryDataDef,
 }
 
 impl TryFrom<&[u8]> for DoryPublicInput {
@@ -59,7 +57,7 @@ impl DoryPublicInput {
     pub fn new(
         expr: &DynProofPlan<DoryCommitment>,
         commitments: QueryCommitments<DoryCommitment>,
-        query_data: QueryData<DoryScalar>,
+        query_data: QueryDataDef,
     ) -> Self {
         // Copy trait is not implemented for ProofPlan, so we serialize and deserialize
         let bytes = serde_cbor::to_vec(&expr).unwrap();
@@ -82,7 +80,7 @@ impl DoryPublicInput {
     }
 
     /// Returns a reference to the query data.
-    pub fn query_data(&self) -> &QueryData<DoryScalar> {
+    pub fn query_data(&self) -> &QueryDataDef {
         &self.query_data
     }
 
@@ -183,7 +181,7 @@ mod test {
         let query_commitments = compute_query_commitments(&query, &accessor);
 
         // Verify proof
-        let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data);
+        let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data.into());
 
         let bytes = pubs.into_bytes().unwrap();
 
