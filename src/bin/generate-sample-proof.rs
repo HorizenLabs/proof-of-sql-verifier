@@ -18,7 +18,8 @@ use std::io::prelude::*;
 
 use proof_of_sql::base::commitment::QueryCommitments;
 use proof_of_sql::proof_primitive::dory::{
-    DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
+    DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
+    PublicParameters, VerifierSetup,
 };
 pub use proof_of_sql::{
     base::{
@@ -30,14 +31,18 @@ pub use proof_of_sql::{
         proof::{ProofPlan, VerifiableQueryResult},
     },
 };
-use proof_of_sql_verifier::{DoryProof, DoryPublicInput, VerificationKey};
+use proof_of_sql_verifier::{Proof, PublicInput, VerificationKey};
 use rand::thread_rng;
 
 fn main() {
     // Initialize setup
-    let public_parameters = PublicParameters::rand(4, &mut thread_rng());
+    let max_nu = 4;
+    let sigma = max_nu;
+    let public_parameters = PublicParameters::rand(max_nu, &mut thread_rng());
     let ps = ProverSetup::from(&public_parameters);
-    let prover_setup = DoryProverPublicSetup::new(&ps, 4);
+    let vs = VerifierSetup::from(&public_parameters);
+    let prover_setup = DoryProverPublicSetup::new(&ps, sigma);
+    let verifier_setup = DoryVerifierPublicSetup::new(&vs, sigma);
 
     // Build table accessor and query
     let mut accessor =
@@ -66,24 +71,24 @@ fn main() {
     );
 
     // Get query data and commitments
-    let vk = VerificationKey::new(&public_parameters, 4);
+    let vk = VerificationKey::new(&public_parameters, sigma);
     let query_data = proof
-        .verify(query.proof_expr(), &accessor, &vk.into_dory())
+        .verify(query.proof_expr(), &accessor, &verifier_setup)
         .unwrap();
 
     let columns = query.proof_expr().get_column_references();
     let query_commitments = QueryCommitments::from_accessor_with_max_bounds(columns, &accessor);
 
     // Verify proof
-    let proof = DoryProof::new(proof);
-    let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data);
-    let _result = proof_of_sql_verifier::verify_dory_proof(&proof, &pubs, &vk);
+    let proof = Proof::new(proof);
+    let pubs = PublicInput::new(query.proof_expr(), query_commitments, query_data);
+    let _result = proof_of_sql_verifier::verify_proof(&proof, &pubs, &vk);
 
     // Write proof, pubs, and vk to binary files
     let mut proof_bin = File::create("proof.bin").unwrap();
-    proof_bin.write_all(&proof.into_bytes()).unwrap();
+    proof_bin.write_all(&proof.to_bytes()).unwrap();
     let mut pubs_bin = File::create("pubs.bin").unwrap();
-    pubs_bin.write_all(&pubs.into_bytes().unwrap()).unwrap();
+    pubs_bin.write_all(&pubs.try_to_bytes().unwrap()).unwrap();
     let mut vk_bin = File::create("vk.bin").unwrap();
-    vk_bin.write_all(&vk.into_bytes()).unwrap();
+    vk_bin.write_all(&vk.to_bytes()).unwrap();
 }

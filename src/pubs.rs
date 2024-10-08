@@ -29,22 +29,22 @@ use crate::{serde::QueryDataDef, VerifyError};
 /// for verifying a Dory proof, including the proof expression, commitments,
 /// and query data.
 #[derive(Serialize, Deserialize)]
-pub struct DoryPublicInput {
+pub struct PublicInput {
     expr: DynProofPlan<DoryCommitment>,
     commitments: QueryCommitments<DoryCommitment>,
     #[serde(with = "QueryDataDef")]
     query_data: QueryData<DoryScalar>,
 }
 
-impl TryFrom<&[u8]> for DoryPublicInput {
+impl TryFrom<&[u8]> for PublicInput {
     type Error = VerifyError;
 
     fn try_from(bytes: &[u8]) -> Result<Self, VerifyError> {
-        DoryPublicInput::from_bytes(bytes).map_err(|_| VerifyError::InvalidInput)
+        PublicInput::try_from_bytes(bytes).map_err(|_| VerifyError::InvalidInput)
     }
 }
 
-impl DoryPublicInput {
+impl PublicInput {
     /// Creates a new `DoryPublicInput` instance.
     ///
     /// # Arguments
@@ -87,12 +87,12 @@ impl DoryPublicInput {
     }
 
     /// Converts the public input into a byte array.
-    pub fn into_bytes(&self) -> Result<Vec<u8>, VerifyError> {
+    pub fn try_to_bytes(&self) -> Result<Vec<u8>, VerifyError> {
         serde_cbor::to_vec(self).map_err(|_| VerifyError::InvalidInput)
     }
 
     /// Converts a byte array into a `DoryPublicInput` instance.
-    fn from_bytes(bytes: &[u8]) -> Result<Self, serde_cbor::Error> {
+    fn try_from_bytes(bytes: &[u8]) -> Result<Self, serde_cbor::Error> {
         serde_cbor::from_slice(bytes)
     }
 }
@@ -118,7 +118,7 @@ mod test {
         },
     };
 
-    use crate::{DoryProof, VerificationKey};
+    use crate::{Proof, VerificationKey};
 
     use super::*;
 
@@ -158,7 +158,7 @@ mod test {
     }
 
     #[test]
-    fn test_dory_public_input() {
+    fn dory_public_input() {
         // Initialize setup
         let public_parameters = PublicParameters::test_rand(6, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
@@ -178,18 +178,18 @@ mod test {
 
         // Get query data and commitments
         let query_data = proof
-            .verify(query.proof_expr(), &accessor, &vk.into_dory())
+            .verify(query.proof_expr(), &accessor, &vk.to_dory())
             .unwrap();
         let query_commitments = compute_query_commitments(&query, &accessor);
 
         // Verify proof
-        let pubs = DoryPublicInput::new(query.proof_expr(), query_commitments, query_data);
+        let pubs = PublicInput::new(query.proof_expr(), query_commitments, query_data);
 
-        let bytes = pubs.into_bytes().unwrap();
+        let bytes = pubs.try_to_bytes().unwrap();
 
-        let pubs = DoryPublicInput::try_from(&bytes[..]).unwrap();
-        let proof = DoryProof::new(proof);
-        let result = crate::verify_dory_proof(&proof, &pubs, &vk);
+        let pubs = PublicInput::try_from(&bytes[..]).unwrap();
+        let proof = Proof::new(proof);
+        let result = crate::verify_proof(&proof, &pubs, &vk);
 
         assert!(result.is_ok());
     }

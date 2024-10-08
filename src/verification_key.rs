@@ -71,7 +71,7 @@ impl VerificationKey {
     }
 
     /// Converts the verification key into a byte array.
-    pub fn into_bytes(&self) -> Vec<u8> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
         self.serialize_compressed(&mut buf).unwrap();
         buf
@@ -82,7 +82,7 @@ impl VerificationKey {
     /// # Returns
     ///
     /// A DoryVerifierPublicSetup instance.
-    pub fn into_dory(&self) -> DoryVerifierPublicSetup<'_> {
+    pub(crate) fn to_dory(&self) -> DoryVerifierPublicSetup<'_> {
         DoryVerifierPublicSetup::new(&self.setup, self.sigma)
     }
 
@@ -114,21 +114,21 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_verification_key() {
+    fn verification_key() {
         let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
         let vk = VerificationKey::new(&public_parameters, 1);
-        let serialized_vk = vk.into_bytes();
+        let serialized_vk = vk.to_bytes();
         let deserialized_vk = VerificationKey::try_from(serialized_vk.as_slice()).unwrap();
-        let dory_key = deserialized_vk.into_dory();
+        let dory_key = deserialized_vk.to_dory();
 
         assert_eq!(dory_key.verifier_setup(), &vk.setup);
     }
 
     #[test]
-    fn test_verification_key_short_buffer() {
+    fn verification_key_short_buffer() {
         let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
         let vk = VerificationKey::new(&public_parameters, 1);
-        let serialized_vk = vk.into_bytes();
+        let serialized_vk = vk.to_bytes();
         let deserialized_vk = VerificationKey::try_from(&serialized_vk[..serialized_vk.len() - 1]);
         assert!(deserialized_vk.is_err());
     }
@@ -168,7 +168,7 @@ mod test {
     fn verification_key_size(#[case] max_nu: usize) {
         let public_parameters = PublicParameters::test_rand(max_nu, &mut test_rng());
         let vk = VerificationKey::new(&public_parameters, 1);
-        let vk_serialized = vk.into_bytes();
+        let vk_serialized = vk.to_bytes();
         assert_eq!(
             vk_serialized.len(),
             VerificationKey::serialized_size(max_nu)

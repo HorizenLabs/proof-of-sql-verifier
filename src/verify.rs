@@ -21,7 +21,7 @@ use proof_of_sql::{
     sql::proof::{QueryData, VerifiableQueryResult},
 };
 
-use crate::VerifyError;
+use crate::{Proof, PublicInput, VerificationKey, VerifyError};
 
 /// Verifies a generic proof against the provided expression, commitments, and query data.
 ///
@@ -40,8 +40,8 @@ use crate::VerifyError;
 /// # Returns
 ///
 /// * `Result<(), VerifyError>` - Ok(()) if the proof is valid, or an error if verification fails.
-pub fn verify_proof<CP: CommitmentEvaluationProof>(
-    proof: VerifiableQueryResult<CP>,
+fn verify_proof_internal<CP: CommitmentEvaluationProof>(
+    proof: &VerifiableQueryResult<CP>,
     expr: &DynProofPlan<CP::Commitment>,
     commitments: &QueryCommitments<CP::Commitment>,
     query_data: &QueryData<CP::Scalar>,
@@ -73,4 +73,33 @@ pub fn verify_proof<CP: CommitmentEvaluationProof>(
     } else {
         Ok(())
     }
+}
+
+/// Verifies a Dory proof against the provided public input and verification key.
+///
+/// # Arguments
+///
+/// * `proof` - The Dory proof to be verified.
+/// * `pubs` - The public input for the proof.
+/// * `vk` - The verification key used to verify the proof.
+///
+/// # Type Parameters
+///
+/// * `N` - A const generic parameter, likely related to the size of the verification key.
+///
+/// # Returns
+///
+/// * `Result<(), VerifyError>` - Ok(()) if the proof is valid, or an error if verification fails.
+pub fn verify_proof(
+    proof: &Proof,
+    pubs: &PublicInput,
+    vk: &VerificationKey,
+) -> Result<(), VerifyError> {
+    verify_proof_internal(
+        proof.inner(),
+        pubs.expr(),
+        pubs.commitments(),
+        pubs.query_data(),
+        &vk.to_dory(),
+    )
 }

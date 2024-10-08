@@ -28,11 +28,11 @@ use crate::VerifyError;
 ///
 /// * `proof` - A `VerifiableQueryResult<DoryEvaluationProof>` containing the actual proof data.
 #[derive(Clone)]
-pub struct DoryProof {
+pub struct Proof {
     proof: VerifiableQueryResult<DoryEvaluationProof>,
 }
 
-impl TryFrom<&[u8]> for DoryProof {
+impl TryFrom<&[u8]> for Proof {
     type Error = VerifyError;
 
     /// Attempts to create a DoryProof from a byte slice.
@@ -51,7 +51,7 @@ impl TryFrom<&[u8]> for DoryProof {
     }
 }
 
-impl DoryProof {
+impl Proof {
     /// Creates a new DoryProof.
     ///
     /// # Arguments
@@ -70,7 +70,7 @@ impl DoryProof {
     /// # Returns
     ///
     /// * `Vec<u8>` - The serialized proof as a byte vector.
-    pub fn into_bytes(self) -> Vec<u8> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         serde_cbor::to_vec(&self.proof).unwrap()
     }
 
@@ -79,7 +79,7 @@ impl DoryProof {
     /// # Returns
     ///
     /// * `VerifiableQueryResult<DoryEvaluationProof>` - The proof data.
-    pub fn into_dory(self) -> VerifiableQueryResult<DoryEvaluationProof> {
-        self.proof
+    pub fn inner(&self) -> &VerifiableQueryResult<DoryEvaluationProof> {
+        &self.proof
     }
 }
