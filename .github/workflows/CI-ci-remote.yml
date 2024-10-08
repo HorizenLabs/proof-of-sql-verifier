@@ -8,7 +8,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: 
+  workflow_dispatch:
 
 env:
   RUST_BACKTRACE: 1
@@ -24,24 +24,13 @@ jobs:
         with:
           command: install
           args: --debug cargo-make
-      - name: Install bare-metal target
+      - name: Install latest nightly
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
-          target: thumbv7em-none-eabi
+            toolchain: nightly
       - name: Run CI full (stable)
         uses: actions-rs/cargo@v1
         with:
           toolchain: stable
           command: make
-          args: ci-remote     
-      - name: Install latest nightly
-        uses: actions-rs/toolchain@v1
-        with:
-            toolchain: nightly
-      - name: Run CI check-deps only (nightly)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: make
-          args: udeps
+          args: ci-remote
