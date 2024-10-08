@@ -62,8 +62,9 @@ impl PublicInput {
         query_data: QueryData<DoryScalar>,
     ) -> Self {
         // Copy trait is not implemented for ProofPlan, so we serialize and deserialize
-        let bytes = serde_cbor::to_vec(&expr).unwrap();
-        let expr: DynProofPlan<DoryCommitment> = serde_cbor::from_slice(&bytes).unwrap();
+        let mut bytes = Vec::new();
+        ciborium::into_writer(&expr, &mut bytes).unwrap();
+        let expr: DynProofPlan<DoryCommitment> = ciborium::from_reader(&bytes[..]).unwrap();
         Self {
             expr,
             commitments,
@@ -88,12 +89,14 @@ impl PublicInput {
 
     /// Converts the public input into a byte array.
     pub fn try_to_bytes(&self) -> Result<Vec<u8>, VerifyError> {
-        serde_cbor::to_vec(self).map_err(|_| VerifyError::InvalidInput)
+        let mut result = Vec::new();
+        ciborium::into_writer(self, &mut result).map_err(|_| VerifyError::InvalidInput)?;
+        Ok(result)
     }
 
     /// Converts a byte array into a `DoryPublicInput` instance.
-    fn try_from_bytes(bytes: &[u8]) -> Result<Self, serde_cbor::Error> {
-        serde_cbor::from_slice(bytes)
+    fn try_from_bytes(bytes: &[u8]) -> Result<Self, VerifyError> {
+        ciborium::from_reader(bytes).map_err(|_| VerifyError::InvalidInput)
     }
 }
 

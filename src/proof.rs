@@ -45,7 +45,7 @@ impl TryFrom<&[u8]> for Proof {
     ///
     /// * `Result<Self, Self::Error>` - A DoryProof if deserialization succeeds, or a VerifyError if it fails.
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let proof = serde_cbor::from_slice(value).map_err(|_| VerifyError::InvalidProofData)?;
+        let proof = ciborium::from_reader(value).map_err(|_| VerifyError::InvalidProofData)?;
 
         Ok(Self::new(proof))
     }
@@ -71,7 +71,9 @@ impl Proof {
     ///
     /// * `Vec<u8>` - The serialized proof as a byte vector.
     pub fn to_bytes(&self) -> Vec<u8> {
-        serde_cbor::to_vec(&self.proof).unwrap()
+        let mut result = Vec::new();
+        ciborium::into_writer(&self.proof, &mut result).unwrap();
+        result
     }
 
     /// Converts the DoryProof into a VerifiableQueryResult<DoryEvaluationProof>.
