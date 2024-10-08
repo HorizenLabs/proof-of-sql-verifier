@@ -1,3 +1,8 @@
 /target
 Cargo.lock
 lcov.info
+
+# Outputs of generate-sample-proof binary
+proof.bin
+pubs.bin
+vk.bin
