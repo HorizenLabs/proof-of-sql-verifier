@@ -115,6 +115,28 @@ mod owned_table {
     struct Wrapper(#[serde(with = "OwnedTableDef")] OwnedTable<DoryScalar>);
 
     #[test]
+    fn deserialization_should_fail_with_different_column_lengths() {
+        let invalid_table_toml = r#"
+            {
+                "table": {
+                    "first_column": {
+                    "Boolean": [
+                        true,
+                        false
+                    ]
+                    },
+                    "second_column": {
+                    "Boolean": [
+                        false
+                    ]
+                    }
+                }
+            }
+        "#;
+        assert!(serde_json::from_str::<Wrapper>(&invalid_table_toml).is_err())
+    }
+
+    #[test]
     fn serialization_should_preserve_order() {
         let mut table = IndexMap::default();
         table.insert(
