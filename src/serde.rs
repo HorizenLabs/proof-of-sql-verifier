@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::errors::VerifyError;
 use alloc::{string::String, vec::Vec};
 use proof_of_sql::{
     base::{
@@ -26,9 +27,10 @@ use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_with::{serde_as, DeserializeAs, MapPreventDuplicates, SerializeAs};
 
-pub type IndexMap = indexmap::IndexMap<
+type IndexMap = indexmap::IndexMap<
     Identifier,
     OwnedColumn<DoryScalar>,
     core::hash::BuildHasherDefault<ahash::AHasher>,
@@ -42,102 +44,109 @@ pub(crate) struct QueryDataDef {
     verification_hash: [u8; 32],
 }
 
+#[serde_as]
 #[derive(Serialize, Deserialize)]
-#[serde(remote = "OwnedTable<DoryScalar>")]
-pub struct OwnedTableDef {
-    #[serde(getter = "OwnedTable::inner_table", with = "index_map_serde")]
+struct RaggedTable {
+    #[serde_as(as = "MapPreventDuplicates<_, OwnedColumnDef>")]
     table: IndexMap,
 }
 
-impl From<OwnedTableDef> for OwnedTable<DoryScalar> {
-    fn from(value: OwnedTableDef) -> Self {
-        Self::try_new(value.table).unwrap()
+#[serde_as]
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "OwnedTable<DoryScalar>", try_from = "RaggedTable")]
+struct OwnedTableDef {
+    #[serde_as(as = "MapPreventDuplicates<_, OwnedColumnDef>")]
+    #[serde(getter = "OwnedTable::inner_table")]
+    table: IndexMap,
+}
+
+impl TryFrom<RaggedTable> for OwnedTable<DoryScalar> {
+    type Error = VerifyError;
+
+    fn try_from(value: RaggedTable) -> Result<Self, Self::Error> {
+        Self::try_new(value.table).map_err(|_| VerifyError::InvalidInput)
     }
 }
 
-mod index_map_serde {
-    use super::*;
-    use core::{fmt, marker::PhantomData};
-    use serde::{
-        de::{MapAccess, Visitor},
-        ser::SerializeMap,
-        Deserializer, Serializer,
-    };
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "OwnedColumn<DoryScalar>")]
+#[non_exhaustive]
+enum OwnedColumnDef {
+    Boolean(Vec<bool>),
+    SmallInt(Vec<i16>),
+    Int(Vec<i32>),
+    BigInt(Vec<i64>),
+    VarChar(Vec<String>),
+    Int128(Vec<i128>),
+    Decimal75(Precision, i8, Vec<DoryScalar>),
+    Scalar(Vec<DoryScalar>),
+    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
+}
 
-    #[derive(Serialize, Deserialize)]
-    struct OwnedColumnWrap(#[serde(with = "OwnedColumnDef")] OwnedColumn<DoryScalar>);
-
-    #[derive(Serialize, Deserialize)]
-    #[serde(remote = "OwnedColumn<DoryScalar>")]
-    #[non_exhaustive]
-    pub enum OwnedColumnDef {
-        Boolean(Vec<bool>),
-        SmallInt(Vec<i16>),
-        Int(Vec<i32>),
-        BigInt(Vec<i64>),
-        VarChar(Vec<String>),
-        Int128(Vec<i128>),
-        Decimal75(Precision, i8, Vec<DoryScalar>),
-        Scalar(Vec<DoryScalar>),
-        TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
-    }
-
-    pub fn serialize<S>(index_map: &IndexMap, serializer: S) -> Result<S::Ok, S::Error>
+impl SerializeAs<OwnedColumn<DoryScalar>> for OwnedColumnDef {
+    fn serialize_as<S>(source: &OwnedColumn<DoryScalar>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let mut map = serializer.serialize_map(Some(index_map.len()))?;
-        for (k, v) in index_map {
-            map.serialize_entry(k, &OwnedColumnWrap(v.clone()))?;
-        }
-        map.end()
+        OwnedColumnDef::serialize(source, serializer)
     }
+}
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<IndexMap, D::Error>
+impl<'de> DeserializeAs<'de, OwnedColumn<DoryScalar>> for OwnedColumnDef {
+    fn deserialize_as<D>(deserializer: D) -> Result<OwnedColumn<DoryScalar>, D::Error>
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_map(IndexMapVisitor::new())
+        OwnedColumnDef::deserialize(deserializer)
     }
+}
 
-    struct IndexMapVisitor {
-        marker: PhantomData<fn() -> IndexMap>,
-    }
+#[cfg(test)]
+mod owned_table {
+    use super::*;
 
-    impl IndexMapVisitor {
-        fn new() -> Self {
-            IndexMapVisitor {
-                marker: PhantomData,
-            }
-        }
-    }
+    use core::str::FromStr;
 
-    impl<'de> Visitor<'de> for IndexMapVisitor {
-        // The type that our Visitor is going to produce.
-        type Value = IndexMap;
+    use indexmap::IndexMap;
+    use proof_of_sql::base::scalar::Scalar;
 
-        // Format a message stating what data this Visitor expects to receive.
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a very special map")
-        }
+    #[derive(Serialize, Deserialize)]
+    #[serde(transparent)]
+    struct Wrapper(#[serde(with = "OwnedTableDef")] OwnedTable<DoryScalar>);
 
-        // Deserialize MyMap from an abstract "map" provided by the
-        // Deserializer. The MapAccess input is a callback provided by
-        // the Deserializer to let us see each entry in the map.
-        fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
-        where
-            M: MapAccess<'de>,
-        {
-            let mut map =
-                IndexMap::with_capacity_and_hasher(access.size_hint().unwrap_or(0), <_>::default());
+    #[test]
+    fn serialization_should_preserve_order() {
+        let mut table = IndexMap::default();
+        table.insert(
+            Identifier::from_str("b").unwrap(),
+            OwnedColumn::try_from_scalars(
+                &[DoryScalar::ONE, DoryScalar::ZERO],
+                proof_of_sql::base::database::ColumnType::Boolean,
+            )
+            .unwrap(),
+        );
+        table.insert(
+            Identifier::from_str("a").unwrap(),
+            OwnedColumn::try_from_scalars(
+                &[DoryScalar::ZERO, DoryScalar::ONE],
+                proof_of_sql::base::database::ColumnType::Boolean,
+            )
+            .unwrap(),
+        );
+        let owned_table = OwnedTable::try_new(table).unwrap();
 
-            // While there are entries remaining in the input, add them
-            // into our map.
-            while let Some((key, OwnedColumnWrap(value))) = access.next_entry()? {
-                map.insert(key, value);
-            }
+        let mut buffer = Vec::new();
+        ciborium::into_writer(&Wrapper(owned_table.clone()), &mut buffer).unwrap();
+        let Wrapper(deserialized_owned_table) = ciborium::from_reader(&buffer[..]).unwrap();
 
-            Ok(map)
-        }
+        assert_eq!(
+            owned_table.inner_table().len(),
+            deserialized_owned_table.inner_table().len()
+        );
+        assert!(owned_table
+            .inner_table()
+            .iter()
+            .zip(deserialized_owned_table.inner_table().iter())
+            .all(|((k_0, _), (k_1, _))| k_0 == k_1))
     }
 }
