@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use alloc::vec::Vec;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use proof_of_sql::proof_primitive::dory::{
     DoryVerifierPublicSetup, PublicParameters, VerifierSetup,
@@ -106,14 +107,15 @@ impl VerificationKey {
 #[cfg(test)]
 mod test {
     use ark_serialize::CanonicalSerialize;
-    use proof_of_sql::proof_primitive::dory::{test_rng, PublicParameters};
+    use ark_std::test_rng;
+    use proof_of_sql::proof_primitive::dory::PublicParameters;
     use rstest::*;
 
     use super::*;
 
     #[test]
     fn verification_key() {
-        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
         let vk = VerificationKey::new(&public_parameters, 1);
         let serialized_vk = vk.to_bytes();
         let deserialized_vk = VerificationKey::try_from(serialized_vk.as_slice()).unwrap();
@@ -124,7 +126,7 @@ mod test {
 
     #[test]
     fn verification_key_short_buffer() {
-        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
         let vk = VerificationKey::new(&public_parameters, 1);
         let serialized_vk = vk.to_bytes();
         let deserialized_vk = VerificationKey::try_from(&serialized_vk[..serialized_vk.len() - 1]);
@@ -164,7 +166,7 @@ mod test {
     #[case::max_nu_2(2)]
     #[case::max_nu_5(5)]
     fn verification_key_size(#[case] max_nu: usize) {
-        let public_parameters = PublicParameters::rand(max_nu, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(max_nu, &mut test_rng());
         let vk = VerificationKey::new(&public_parameters, 1);
         let vk_serialized = vk.to_bytes();
         assert_eq!(

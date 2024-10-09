@@ -14,7 +14,9 @@
 // limitations under the License.
 
 /// This module defines errors used across the verification library.
-#[derive(Debug, PartialEq)]
+use snafu::Snafu;
+
+#[derive(Debug, Snafu)]
 pub enum VerifyError {
     /// Provided data has invalid public inputs.
     InvalidInput,

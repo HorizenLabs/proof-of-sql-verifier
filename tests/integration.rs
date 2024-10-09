@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use ark_std::test_rng;
 use proof_of_sql::{
     base::commitment::QueryCommitments,
     base::{
@@ -21,7 +22,7 @@ use proof_of_sql::{
         database::{owned_table_utility::*, OwnedTableTestAccessor, SchemaAccessor, TestAccessor},
     },
     proof_primitive::dory::{
-        test_rng, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
+        DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
     },
     sql::{
         parse::QueryExpr,
@@ -131,7 +132,7 @@ mod generate_and_verify_proof {
         // Initialize setup
         let max_nu = 4;
         let sigma = max_nu;
-        let public_parameters = PublicParameters::rand(max_nu, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(max_nu, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
         let vs = VerifierSetup::from(&public_parameters);
         let prover_setup = DoryProverPublicSetup::new(&ps, sigma);
@@ -169,7 +170,7 @@ mod generate_and_verify_proof {
         // Initialize setup
         let max_nu = 4;
         let sigma = max_nu;
-        let public_parameters = PublicParameters::rand(max_nu, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(max_nu, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
         let vs = VerifierSetup::from(&public_parameters);
         let prover_setup = DoryProverPublicSetup::new(&ps, sigma);
@@ -209,7 +210,7 @@ mod generate_and_verify_proof {
         // Initialize setup
         let max_nu = 4;
         let sigma = max_nu;
-        let public_parameters = PublicParameters::rand(max_nu, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(max_nu, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
         let vs = VerifierSetup::from(&public_parameters);
         let prover_setup = DoryProverPublicSetup::new(&ps, sigma);
@@ -231,7 +232,7 @@ mod generate_and_verify_proof {
             .verify(query.proof_expr(), &accessor, &verifier_setup)
             .unwrap();
 
-        let no_commitments = QueryCommitments::new();
+        let no_commitments = QueryCommitments::default();
         let proof = Proof::new(proof);
         let pubs = PublicInput::new(query.proof_expr(), no_commitments, query_data);
         let vk = VerificationKey::new(&public_parameters, 4);
@@ -246,7 +247,7 @@ mod generate_and_verify_proof {
         // Initialize setup
         let max_nu = 4;
         let sigma = max_nu;
-        let public_parameters = PublicParameters::rand(max_nu, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(max_nu, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
         let vs = VerifierSetup::from(&public_parameters);
         let prover_setup = DoryProverPublicSetup::new(&ps, sigma);
@@ -288,7 +289,7 @@ mod generate_and_verify_proof {
         // Initialize setup
         let max_nu = 4;
         let sigma = max_nu;
-        let public_parameters = PublicParameters::rand(max_nu, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(max_nu, &mut test_rng());
         let ps = ProverSetup::from(&public_parameters);
         let vs = VerifierSetup::from(&public_parameters);
         let prover_setup = DoryProverPublicSetup::new(&ps, sigma);

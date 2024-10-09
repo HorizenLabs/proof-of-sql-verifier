@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use alloc::vec::Vec;
 use proof_of_sql::proof_primitive::dory::DoryEvaluationProof;
 use proof_of_sql::sql::proof::VerifiableQueryResult;
 
@@ -44,7 +45,7 @@ impl TryFrom<&[u8]> for Proof {
     ///
     /// * `Result<Self, Self::Error>` - A DoryProof if deserialization succeeds, or a VerifyError if it fails.
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let proof = bincode::deserialize(value).map_err(|_| VerifyError::InvalidProofData)?;
+        let proof = ciborium::from_reader(value).map_err(|_| VerifyError::InvalidProofData)?;
 
         Ok(Self::new(proof))
     }
@@ -70,7 +71,9 @@ impl Proof {
     ///
     /// * `Vec<u8>` - The serialized proof as a byte vector.
     pub fn to_bytes(&self) -> Vec<u8> {
-        bincode::serialize(&self.proof).unwrap()
+        let mut result = Vec::new();
+        ciborium::into_writer(&self.proof, &mut result).unwrap();
+        result
     }
 
     /// Converts the DoryProof into a VerifiableQueryResult<DoryEvaluationProof>.
