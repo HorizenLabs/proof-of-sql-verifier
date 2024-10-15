@@ -14,6 +14,7 @@
 // limitations under the License.
 
 use alloc::vec::Vec;
+use ark_bls12_381::{G1Affine, G2Affine};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use proof_of_sql::proof_primitive::dory::{
     DoryVerifierPublicSetup, PublicParameters, VerifierSetup,
@@ -22,8 +23,23 @@ use proof_of_sql::proof_primitive::dory::{
 use crate::VerifyError;
 
 const GT_SERIALIZED_SIZE: usize = 576;
-const G1_AFFINE_SERIALIZED_SIZE: usize = 48;
-const G2_AFFINE_SERIALIZED_SIZE: usize = 96;
+const G1_AFFINE_SERIALIZED_SIZE: usize = 96;
+const G2_AFFINE_SERIALIZED_SIZE: usize = 192;
+
+type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
+
+#[test]
+fn print_gt_size() {
+    let gt = GT::default();
+    println!("GT size_compressed: {}", gt.compressed_size());
+    println!("GT size uncompressed: {}", gt.uncompressed_size());
+    let g1_affine = G1Affine::default();
+    println!("G1Affine compressed: {}", g1_affine.compressed_size());
+    println!("G1Affine uncompressed: {}", g1_affine.uncompressed_size());
+    let g2_affine = G2Affine::default();
+    println!("G2Affine compressed: {}", g2_affine.compressed_size());
+    println!("G2Affine uncompressed: {}", g2_affine.uncompressed_size());
+}
 
 /// Represents a verification key for Dory proofs.
 ///
@@ -48,7 +64,7 @@ impl TryFrom<&[u8]> for VerificationKey {
     ///
     /// * `Result<Self, Self::Error>` - A VerificationKey if deserialization succeeds, or a VerifyError if it fails.
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        VerificationKey::deserialize_compressed(value)
+        VerificationKey::deserialize_uncompressed(value)
             .map_err(|_| VerifyError::InvalidVerificationKey)
     }
 }
@@ -73,7 +89,7 @@ impl VerificationKey {
     /// Converts the verification key into a byte array.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
-        self.serialize_compressed(&mut buf).unwrap();
+        self.serialize_uncompressed(&mut buf).unwrap();
         buf
     }
 
@@ -138,7 +154,7 @@ mod test {
         type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
         let gt = GT::default();
         let mut buffer = Vec::new();
-        gt.serialize_compressed(&mut buffer).unwrap();
+        gt.serialize_uncompressed(&mut buffer).unwrap();
         assert_eq!(GT_SERIALIZED_SIZE, buffer.len());
     }
 
@@ -147,7 +163,7 @@ mod test {
         type G1Affine = ark_ec::models::bls12::G1Affine<ark_bls12_381::Config>;
         let g1_affine = G1Affine::default();
         let mut buffer = Vec::new();
-        g1_affine.serialize_compressed(&mut buffer).unwrap();
+        g1_affine.serialize_uncompressed(&mut buffer).unwrap();
         assert_eq!(G1_AFFINE_SERIALIZED_SIZE, buffer.len());
     }
 
@@ -156,7 +172,7 @@ mod test {
         type G2Affine = ark_ec::models::bls12::G2Affine<ark_bls12_381::Config>;
         let g2_affine = G2Affine::default();
         let mut buffer = Vec::new();
-        g2_affine.serialize_compressed(&mut buffer).unwrap();
+        g2_affine.serialize_uncompressed(&mut buffer).unwrap();
         assert_eq!(G2_AFFINE_SERIALIZED_SIZE, buffer.len());
     }
 

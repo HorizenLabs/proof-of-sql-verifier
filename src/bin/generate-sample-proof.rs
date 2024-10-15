@@ -16,6 +16,7 @@
 use std::fs::File;
 use std::io::prelude::*;
 
+use clap::Parser;
 use proof_of_sql::base::commitment::QueryCommitments;
 use proof_of_sql::proof_primitive::dory::{
     DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
@@ -34,9 +35,23 @@ pub use proof_of_sql::{
 use proof_of_sql_verifier::{Proof, PublicInput, VerificationKey};
 use rand::thread_rng;
 
+/// Simple program to greet a person
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Value of `max_nu`
+    #[arg(long)]
+    max_nu: usize,
+    /// Suffix
+    #[arg(long)]
+    suffix: String,
+}
+
 fn main() {
+    let args = Args::parse();
+
     // Initialize setup
-    let max_nu = 4;
+    let max_nu = args.max_nu;
     let sigma = max_nu;
     let public_parameters = PublicParameters::rand(max_nu, &mut thread_rng());
     let ps = ProverSetup::from(&public_parameters);
@@ -85,10 +100,11 @@ fn main() {
     let _result = proof_of_sql_verifier::verify_proof(&proof, &pubs, &vk);
 
     // Write proof, pubs, and vk to binary files
-    let mut proof_bin = File::create("proof.bin").unwrap();
+    let suffix = args.suffix;
+    let mut proof_bin = File::create(format!("VALID_PROOF_{}.bin", suffix)).unwrap();
     proof_bin.write_all(&proof.to_bytes()).unwrap();
-    let mut pubs_bin = File::create("pubs.bin").unwrap();
+    let mut pubs_bin = File::create(format!("VALID_PUBS_{}.bin", suffix)).unwrap();
     pubs_bin.write_all(&pubs.try_to_bytes().unwrap()).unwrap();
-    let mut vk_bin = File::create("vk.bin").unwrap();
+    let mut vk_bin = File::create(format!("VALID_VK_{}.bin", suffix)).unwrap();
     vk_bin.write_all(&vk.to_bytes()).unwrap();
 }
