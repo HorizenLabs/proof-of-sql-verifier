@@ -48,7 +48,7 @@ impl TryFrom<&[u8]> for VerificationKey {
     ///
     /// * `Result<Self, Self::Error>` - A VerificationKey if deserialization succeeds, or a VerifyError if it fails.
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        VerificationKey::deserialize_compressed(value)
+        VerificationKey::deserialize_compressed_unchecked(value)
             .map_err(|_| VerifyError::InvalidVerificationKey)
     }
 }
