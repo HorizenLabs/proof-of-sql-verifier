@@ -96,11 +96,11 @@ impl VerificationKey {
     ///
     /// The size in bytes of the serialized VerificationKey.
     pub fn serialized_size(max_nu: usize) -> usize {
-        5 * (size_of::<usize>() + (max_nu + 1) * GT_SERIALIZED_SIZE) // Delta_1L, Delta_1R, Delta_2L, Delta_2R, chi
+        5 * (size_of::<u64>() + (max_nu + 1) * GT_SERIALIZED_SIZE) // Delta_1L, Delta_1R, Delta_2L, Delta_2R, chi
         + 2 * G1_AFFINE_SERIALIZED_SIZE// Gamma_1_0, H_1
         + 3 * G2_AFFINE_SERIALIZED_SIZE // Gamma_2_0, H_2, Gamma_2_fin
         + GT_SERIALIZED_SIZE // H_T
-        + 2 * size_of::<usize>() // max_nu, sigma
+        + 2 * size_of::<u64>() // max_nu, sigma
     }
 }
 
