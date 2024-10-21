@@ -37,7 +37,7 @@ dependencies = ["run-generate-sample-proof"]
 
 [tasks.run-generate-sample-proof]
 command = "cargo"
-args = ["run", "--bin", "generate-sample-proof", "--features", "rand test"]
+args = ["run", "--bin", "generate-sample-proof", "--features", "rand test clap", "--", "--max-nu=1"]
 
 [tasks.format_inst]
 [tasks.format-inst]

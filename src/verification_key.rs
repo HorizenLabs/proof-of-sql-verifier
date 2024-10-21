@@ -35,24 +35,6 @@ pub struct VerificationKey {
     sigma: usize,
 }
 
-impl TryFrom<&[u8]> for VerificationKey {
-    type Error = VerifyError;
-
-    /// Attempts to create a VerificationKey from a byte slice.
-    ///
-    /// # Arguments
-    ///
-    /// * `value` - The byte slice containing the serialized verification key.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<Self, Self::Error>` - A VerificationKey if deserialization succeeds, or a VerifyError if it fails.
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        VerificationKey::deserialize_compressed(value)
-            .map_err(|_| VerifyError::InvalidVerificationKey)
-    }
-}
-
 impl VerificationKey {
     /// Creates a new VerificationKey from PublicParameters.
     ///
@@ -68,6 +50,34 @@ impl VerificationKey {
             setup: VerifierSetup::from(params),
             sigma,
         }
+    }
+
+    /// Attempts to create a VerificationKey from a byte slice.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The byte slice containing the serialized verification key.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Self, Self::Error>` - A VerificationKey if deserialization succeeds, or a VerifyError if it fails.
+    pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, VerifyError> {
+        VerificationKey::deserialize_compressed(bytes)
+            .map_err(|_| VerifyError::InvalidVerificationKey)
+    }
+
+    /// Attempts to create a VerificationKey from a byte slice. Skips checking if points lie on the curve.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The byte slice containing the serialized verification key.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Self, Self::Error>` - A VerificationKey if deserialization succeeds, or a VerifyError if it fails.
+    pub fn try_from_bytes_unchecked(bytes: &[u8]) -> Result<Self, VerifyError> {
+        VerificationKey::deserialize_compressed_unchecked(bytes)
+            .map_err(|_| VerifyError::InvalidVerificationKey)
     }
 
     /// Converts the verification key into a byte array.
@@ -96,11 +106,11 @@ impl VerificationKey {
     ///
     /// The size in bytes of the serialized VerificationKey.
     pub fn serialized_size(max_nu: usize) -> usize {
-        5 * (size_of::<usize>() + (max_nu + 1) * GT_SERIALIZED_SIZE) // Delta_1L, Delta_1R, Delta_2L, Delta_2R, chi
+        5 * (size_of::<u64>() + (max_nu + 1) * GT_SERIALIZED_SIZE) // Delta_1L, Delta_1R, Delta_2L, Delta_2R, chi
         + 2 * G1_AFFINE_SERIALIZED_SIZE// Gamma_1_0, H_1
         + 3 * G2_AFFINE_SERIALIZED_SIZE // Gamma_2_0, H_2, Gamma_2_fin
         + GT_SERIALIZED_SIZE // H_T
-        + 2 * size_of::<usize>() // max_nu, sigma
+        + 2 * size_of::<u64>() // max_nu, sigma
     }
 }
 
@@ -118,7 +128,7 @@ mod test {
         let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
         let vk = VerificationKey::new(&public_parameters, 1);
         let serialized_vk = vk.to_bytes();
-        let deserialized_vk = VerificationKey::try_from(serialized_vk.as_slice()).unwrap();
+        let deserialized_vk = VerificationKey::try_from_bytes(serialized_vk.as_slice()).unwrap();
         let dory_key = deserialized_vk.to_dory();
 
         assert_eq!(dory_key.verifier_setup(), &vk.setup);
@@ -129,7 +139,8 @@ mod test {
         let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
         let vk = VerificationKey::new(&public_parameters, 1);
         let serialized_vk = vk.to_bytes();
-        let deserialized_vk = VerificationKey::try_from(&serialized_vk[..serialized_vk.len() - 1]);
+        let deserialized_vk =
+            VerificationKey::try_from_bytes(&serialized_vk[..serialized_vk.len() - 1]);
         assert!(deserialized_vk.is_err());
     }
 

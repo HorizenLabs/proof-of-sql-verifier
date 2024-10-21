@@ -16,6 +16,7 @@
 use std::fs::File;
 use std::io::prelude::*;
 
+use clap::Parser;
 use proof_of_sql::base::commitment::QueryCommitments;
 use proof_of_sql::proof_primitive::dory::{
     DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
@@ -34,9 +35,19 @@ pub use proof_of_sql::{
 use proof_of_sql_verifier::{Proof, PublicInput, VerificationKey};
 use rand::thread_rng;
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Value of `max_nu`
+    #[arg(long)]
+    max_nu: usize,
+}
+
 fn main() {
+    let args = Args::parse();
+
     // Initialize setup
-    let max_nu = 4;
+    let max_nu = args.max_nu;
     let sigma = max_nu;
     let public_parameters = PublicParameters::rand(max_nu, &mut thread_rng());
     let ps = ProverSetup::from(&public_parameters);
@@ -50,14 +61,22 @@ fn main() {
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
-            bigint("a", [1, 2, 3, 2]),
-            varchar("b", ["hi", "hello", "there", "world"]),
+            bigint("a", [1, 2]),
+            varchar("b", ["hello", "bye"]),
+            varchar("c", ["foo", "bar"]),
+            varchar("d", ["dc", "marvel"]),
+            varchar("e", ["hide", "seek"]),
+            varchar("f", ["yin", "yang"]),
+            varchar("g", ["chip", "dale"]),
+            varchar("h", ["vim ", "emacs"]),
         ]),
         0,
     );
 
     let query = QueryExpr::try_new(
-        "SELECT b FROM table WHERE a = 2".parse().unwrap(),
+        "SELECT a, b, c, d, e, f, g, h FROM table WHERE a = 2"
+            .parse()
+            .unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
     )
@@ -85,10 +104,10 @@ fn main() {
     let _result = proof_of_sql_verifier::verify_proof(&proof, &pubs, &vk);
 
     // Write proof, pubs, and vk to binary files
-    let mut proof_bin = File::create("proof.bin").unwrap();
+    let mut proof_bin = File::create(format!("VALID_PROOF_MAX_NU_{}.bin", max_nu)).unwrap();
     proof_bin.write_all(&proof.to_bytes()).unwrap();
-    let mut pubs_bin = File::create("pubs.bin").unwrap();
+    let mut pubs_bin = File::create(format!("VALID_PUBS_MAX_NU_{}.bin", max_nu)).unwrap();
     pubs_bin.write_all(&pubs.try_to_bytes().unwrap()).unwrap();
-    let mut vk_bin = File::create("vk.bin").unwrap();
+    let mut vk_bin = File::create(format!("VALID_VK_MAX_NU_{}.bin", max_nu)).unwrap();
     vk_bin.write_all(&vk.to_bytes()).unwrap();
 }
